@@ -2,6 +2,8 @@
 
 Prototyp för karateklubbens nya sajt (tänkt adress: www.teamsanshin.se). Byggd mobilen först, eftersom de flesta besökare kommer via QR-koder på affischer.
 
+Förhandsversion att dela: https://storpappor.github.io/team-sanshin/ (GitHub Pages från grenen `main` i https://github.com/Storpappor/team-sanshin). Varje gång något laddas upp till `main` uppdateras adressen inom någon minut.
+
 ## Filer
 
 - `CLAUDE.md` – instruktioner till Claude Code: mål, arbetssätt och krav.
