@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Skiss: instruktörskalender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#F3F4F7; --ink:#101014; --card:#FFFFFF; --muted:#4A4B5C; --line:#C9CAD6; --dim:#C3C5D0;
+  --purple:#5B2BD6; --purple-text:#4A1FC4; --yellow:#FFD23F; --black:#101014; --ok:#1F7A4D;
+  --display:'Archivo Black','Arial Black',Impact,sans-serif;
+  --body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#15151B; --ink:#F3F4F7; --card:#1E1E27; --muted:#B9BBC9; --line:#3A3B4A; --dim:#3F4050; --purple-text:#B9A2FF; --ok:#6FD3A0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#15151B; --ink:#F3F4F7; --card:#1E1E27; --muted:#B9BBC9; --line:#3A3B4A; --dim:#3F4050; --purple-text:#B9A2FF; --ok:#6FD3A0;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.display{font-family:var(--display);font-weight:400;line-height:1.05;letter-spacing:-.01em}
+.muted{color:var(--muted)}
+
+/* demo banner + view switcher */
+.demo{background:var(--yellow);color:#101014;font-size:14px;font-weight:700;text-align:center;padding:8px 16px calc(8px + env(safe-area-inset-top,0px)) }
+.switch{position:sticky;top:0;z-index:10;background:var(--ground);border-bottom:2px solid var(--ink)}
+.switch .wrap{display:flex;gap:6px;padding-top:10px;padding-bottom:10px}
+.switch button{flex:1;min-height:44px;border:2px solid var(--ink);background:var(--card);font-weight:700;font-size:15px}
+.switch button[aria-selected="true"]{background:var(--purple);color:#fff;border-color:var(--purple)}
+.lead{padding:22px 0 8px}
+.lead h1{font-size:30px}
+.lead p{margin-top:8px}
+.hint{font-size:14px;margin-top:10px;padding:10px 12px;border-left:4px solid var(--purple);background:var(--card)}
+
+/* instructor calendar */
+.who{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:15px}
+.who select{font:inherit;min-height:40px;padding:4px 8px;border:2px solid var(--ink);background:var(--card);color:var(--ink)}
+.filter{display:flex;gap:8px;margin:16px 0 4px;flex-wrap:wrap}
+.chip{border:2px solid var(--ink);background:var(--card);padding:6px 12px;font-size:14px;font-weight:700;min-height:38px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+.week{margin-top:22px}
+.week h2{font-size:20px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.week h2 small{font-family:var(--body);font-size:14px;color:var(--muted);font-weight:500}
+.pass{display:grid;grid-template-columns:62px 1fr;gap:12px;align-items:start;margin-top:10px;padding:12px;background:var(--card);border:2px solid var(--line)}
+.pass.need{border-color:var(--yellow);box-shadow:4px 4px 0 var(--yellow)}
+.pass.mine{border-color:var(--purple);box-shadow:4px 4px 0 var(--purple)}
+.pass.off{opacity:.55}
+.date{text-align:center;border-right:2px solid var(--line);padding-right:10px}
+.date b{display:block;font-family:var(--display);font-weight:400;font-size:26px;line-height:1}
+.date span{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.info .t{font-weight:700}
+.info .g{font-size:15px;color:var(--muted)}
+.status{font-size:15px;margin-top:6px}
+.status.need{font-weight:700}
+.status.ok{color:var(--ok);font-weight:700}
+.act{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.btn{min-height:46px;padding:8px 16px;border:2px solid var(--ink);background:var(--card);font-weight:700;font-size:16px}
+.btn.primary{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:4px 4px 0 var(--ink)}
+.btn.small{min-height:38px;padding:4px 12px;font-size:14px}
+.tag{display:inline-block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;background:var(--ink);color:var(--ground);margin-left:6px;vertical-align:2px}
+.tag.y{background:var(--yellow);color:#101014}
+
+/* public schedule */
+.pub .day{margin-top:18px}
+.pub .day h3{font-family:var(--display);font-weight:400;font-size:20px}
+.pub .row{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.pub .row:last-child{border-bottom:0}
+.pub .row time{font-weight:700;white-space:nowrap}
+.pub .row .r{font-size:15px;margin-top:2px}
+.pub .row.off .l{text-decoration:line-through;color:var(--muted)}
+.frame{margin-top:16px;padding:6px 16px;background:var(--card);border:2px solid var(--ink);box-shadow:6px 6px 0 var(--purple)}
+
+/* admin */
+.sec{margin-top:26px}
+.sec h2{font-size:22px}
+.sec>p{margin-top:6px;font-size:15px}
+.list{margin-top:12px;background:var(--card);border:2px solid var(--line)}
+.li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--line)}
+.li>div:first-child{flex:1;min-width:0}
+.li:last-child{border-bottom:0}
+.li .m{font-size:14px;color:var(--muted)}
+.li .btns{display:flex;gap:6px;flex-wrap:wrap}
+.add{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.add input{flex:1;min-width:160px;font:inherit;min-height:44px;padding:6px 10px;border:2px solid var(--ink);background:var(--card);color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{background:var(--card);border:2px solid var(--line);padding:10px;text-align:center}
+.stat b{display:block;font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1}
+.stat span{font-size:13px;color:var(--muted)}
+.stat.need{border-color:var(--yellow)}
+.done{text-decoration:line-through;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;transition:transform .25s,opacity .25s;background:var(--ink);color:var(--ground);padding:12px 18px;font-weight:700;font-size:15px;max-width:calc(100% - 32px);z-index:20}
+.toast.show{transform:translate(-50%,0);opacity:1}
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="demo">Skiss med påhittade exempeldata. Ingenting sparas, allt återställs när sidan laddas om.</div>
+
+<nav class="switch" aria-label="Välj vy i skissen">
+  <div class="wrap" role="tablist">
+    <button type="button" role="tab" data-view="instr" aria-selected="true">Instruktör</button>
+    <button type="button" role="tab" data-view="pub" aria-selected="false">Sajten</button>
+    <button type="button" role="tab" data-view="admin" aria-selected="false">Admin</button>
+  </div>
+</nav>
+
+<!-- ===== Instructor view ===== -->
+<main class="wrap" id="v-instr">
+  <div class="lead">
+    <h1 class="display">Hej <span id="me-name"></span>!</h1>
+    <p class="muted">Tryck på ett pass för att säga att du kommer. Gula pass saknar instruktör.</p>
+    <p class="hint">Så här ser det ut när en instruktör öppnar sin personliga länk i mobilen. Inget lösenord behövs.</p>
+    <label class="who">Visa som <select id="me"></select></label>
+  </div>
+  <div class="filter" role="group" aria-label="Filtrera">
+    <button type="button" class="chip" data-f="all" aria-pressed="true">Alla pass</button>
+    <button type="button" class="chip" data-f="need" aria-pressed="false">Saknar instruktör</button>
+    <button type="button" class="chip" data-f="mine" aria-pressed="false">Mina pass</button>
+  </div>
+  <div id="cal"></div>
+</main>
+
+<!-- ===== Public view ===== -->
+<main class="wrap pub" id="v-pub" hidden>
+  <div class="lead">
+    <h1 class="display">Kommande vecka</h1>
+    <p class="muted" id="pub-range"></p>
+    <p class="hint">Så här kan schemat på den vanliga sajten se ut. Det uppdateras av sig självt när instruktörerna anmäler sig eller ett pass ställs in.</p>
+  </div>
+  <div class="frame" id="pub"></div>
+</main>
+
+<!-- ===== Admin view ===== -->
+<main class="wrap" id="v-admin" hidden>
+  <div class="lead">
+    <h1 class="display">Admin</h1>
+    <p class="muted">Bara för dig och de ledare som har lösenordet.</p>
+  </div>
+  <div class="stats" id="stats"></div>
+
+  <section class="sec">
+    <h2 class="display">Pass de närmaste veckorna</h2>
+    <p class="muted">Terminens pass läggs in en gång. Här kan du ställa in ett enskilt pass.</p>
+    <div class="list" id="a-pass"></div>
+  </section>
+
+  <section class="sec">
+    <h2 class="display">Instruktörer</h2>
+    <p class="muted">Varje instruktör får en egen länk. Tar du bort någon slutar länken att fungera.</p>
+    <div class="list" id="a-instr"></div>
+    <form class="add" id="add-instr">
+      <input id="new-instr" placeholder="Namn på ny instruktör" aria-label="Namn på ny instruktör">
+      <button class="btn" type="submit">Lägg till</button>
+    </form>
+  </section>
+
+  <section class="sec">
+    <h2 class="display">Anmälningar från föräldrar</h2>
+    <p class="muted">Bocka av när du har hört av dig. Ta bort om någon ber om det.</p>
+    <div class="list" id="a-sign"></div>
+    <div class="add"><button class="btn primary" type="button" id="xls">Ladda ner till Excel</button></div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  /* ---------- demo data (påhittad) ---------- */
+  // Samma exempelschema som på sajten just nu: [veckodag 1=mån, tid, grupp]
+  var TEMPLATE=[
+    [1,'17.00–17.45','Barn 7–9 år, nybörjare'],[1,'17.50–18.50','Barn 10–13 år, fortsättning'],[1,'19.00–20.15','Vuxna, alla nivåer'],
+    [3,'17.00–17.45','Barn 7–9 år, nybörjare'],[3,'17.50–18.50','Barn 10–13 år, fortsättning'],[3,'19.00–20.15','Vuxna, nybörjare och återvändare'],
+    [4,'17.00–18.00','Barn, fortsättning'],[4,'18.15–19.30','Vuxna, alla nivåer']
+  ];
+  var instructors=['Instruktör A','Instruktör B','Instruktör C'];
+  var signups=[
+    {n:'Förälder 1',who:'Barn, 8 år',goal:'Provträna',date:'17 nov',done:true},
+    {n:'Förälder 2',who:'Barn, 11 år',goal:'Terminen',date:'18 nov',done:false},
+    {n:'Förälder 3',who:'Barn, 7 år + jag själv',goal:'Terminen',date:'19 nov',done:false}
+  ];
+  var DAYS=['sön','mån','tis','ons','tor','fre','lör'];
+  var DAYS_LONG=['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
+  var MONTHS=['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+
+  function isoWeek(d){var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));var day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);var y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7);}
+
+  // passes for the coming four weeks, starting today
+  var today=new Date();today.setHours(0,0,0,0);
+  var passes=[];
+  for(var i=0;i<28;i++){
+    var d=new Date(today);d.setDate(today.getDate()+i);
+    TEMPLATE.forEach(function(t){ if(t[0]===d.getDay()) passes.push({id:passes.length,date:new Date(d),time:t[1],group:t[2],who:[],off:false}); });
+  }
+  // seed: some passes already have instructors, one is cancelled
+  passes.forEach(function(p,k){
+    if(k%3===0) p.who.push(instructors[0]);
+    else if(k%4===1) p.who.push(instructors[1]);
+    else if(k%7===2) p.who.push(instructors[2]);
+  });
+  if(passes[9]) {passes[9].off=true;passes[9].who=[];}
+
+  var me=instructors[0], filter='all';
+
+  /* ---------- helpers ---------- */
+  function el(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+  function dstr(d){return DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()];}
+  var toastEl=document.getElementById('toast'),tt;
+  function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show');},2200);}
+  function weeks(list){var out=[],cur=null;list.forEach(function(p){var w=isoWeek(p.date);if(!cur||cur.w!==w){cur={w:w,items:[]};out.push(cur);}cur.items.push(p);});return out;}
+
+  /* ---------- instructor calendar ---------- */
+  var meSel=document.getElementById('me');
+  function fillMe(){meSel.innerHTML='';instructors.forEach(function(n){var o=el('option',null,n);o.value=n;if(n===me)o.selected=true;meSel.appendChild(o);});document.getElementById('me-name').textContent=me;}
+  meSel.addEventListener('change',function(){me=meSel.value;renderAll();});
+  document.querySelectorAll('.chip').forEach(function(c){c.addEventListener('click',function(){filter=c.dataset.f;document.querySelectorAll('.chip').forEach(function(x){x.setAttribute('aria-pressed',String(x===c));});renderCal();});});
+
+  function renderCal(){
+    var cal=document.getElementById('cal');cal.innerHTML='';
+    var list=passes.filter(function(p){
+      if(filter==='need') return !p.off&&p.who.length===0;
+      if(filter==='mine') return p.who.indexOf(me)>-1;
+      return true;
+    });
+    if(!list.length){cal.appendChild(el('p','muted',filter==='mine'?'Du har inte anmält dig till något pass än.':'Alla pass har en instruktör. Bra jobbat!')).style.marginTop='20px';return;}
+    weeks(list).forEach(function(w){
+      var box=el('section','week');
+      var need=w.items.filter(function(p){return !p.off&&!p.who.length;}).length;
+      var h=el('h2','display','Vecka '+w.w);var sm=el('small',null,need?need+' pass saknar instruktör':'Alla pass klara');h.appendChild(sm);box.appendChild(h);
+      w.items.forEach(function(p){
+        var mine=p.who.indexOf(me)>-1, needs=!p.off&&!p.who.length;
+        var c=el('div','pass'+(p.off?' off':needs?' need':mine?' mine':''));
+        var dt=el('div','date');dt.appendChild(el('b',null,p.date.getDate()));dt.appendChild(el('span',null,DAYS[p.date.getDay()]+' '+MONTHS[p.date.getMonth()]));
+        var inf=el('div','info');
+        var t=el('div','t',p.time);if(p.off)t.appendChild(el('span','tag','Inställt'));else if(needs)t.appendChild(el('span','tag y','Saknar instruktör'));
+        inf.appendChild(t);inf.appendChild(el('div','g',p.group));
+        if(!p.off){
+          var st;
+          if(mine) st=el('div','status ok','Du kommer'+(p.who.length>1?' tillsammans med '+p.who.filter(function(n){return n!==me;}).join(', '):''));
+          else if(p.who.length) st=el('div','status',p.who.join(', ')+' kommer');
+          else st=el('div','status need','Ingen har anmält sig än');
+          inf.appendChild(st);
+          var act=el('div','act'),b;
+          if(mine){b=el('button','btn','Jag kan inte längre');b.addEventListener('click',function(){p.who=p.who.filter(function(n){return n!==me;});toast('Du är avanmäld '+dstr(p.date));renderAll();});}
+          else{b=el('button','btn primary','Jag kommer');b.addEventListener('click',function(){p.who.push(me);toast('Tack! Du leder '+dstr(p.date)+' '+p.time.split('–')[0]);renderAll();});}
+          b.type='button';act.appendChild(b);inf.appendChild(act);
+        }
+        c.appendChild(dt);c.appendChild(inf);box.appendChild(c);
+      });
+      cal.appendChild(box);
+    });
+  }
+
+  /* ---------- public schedule: next 7 days ---------- */
+  function renderPub(){
+    var end=new Date(today);end.setDate(today.getDate()+6);
+    document.getElementById('pub-range').textContent=dstr(today)+' till '+dstr(end);
+    var box=document.getElementById('pub');box.innerHTML='';
+    var list=passes.filter(function(p){return p.date<=end;}),last=null,day;
+    list.forEach(function(p){
+      var key=p.date.toDateString();
+      if(key!==last){day=el('div','day');day.appendChild(el('h3',null,DAYS_LONG[p.date.getDay()]+' '+p.date.getDate()+' '+MONTHS[p.date.getMonth()]));box.appendChild(day);last=key;}
+      var r=el('div','row'+(p.off?' off':''));
+      var l=el('div','l');l.appendChild(el('div',null,p.group));
+      var rt=el('div','r'+(p.off?'':' muted'),p.off?'Inställt':p.who.length?'Leds av '+p.who.join(' och '):'Instruktör meddelas');
+      if(p.off)rt.style.fontWeight='700';
+      l.appendChild(rt);r.appendChild(el('time',null,p.time));r.appendChild(l);day.appendChild(r);
+    });
+  }
+
+  /* ---------- admin ---------- */
+  function renderAdmin(){
+    var open=passes.filter(function(p){return !p.off;});
+    var need=open.filter(function(p){return !p.who.length;}).length;
+    var news=signups.filter(function(s){return !s.done;}).length;
+    var st=document.getElementById('stats');st.innerHTML='';
+    [[need,'pass saknar instruktör',need>0],[open.length,'pass närmaste 4 veckorna',false],[news,'nya anmälningar',false]].forEach(function(s){var b=el('div','stat'+(s[2]?' need':''));b.appendChild(el('b',null,s[0]));b.appendChild(el('span',null,s[1]));st.appendChild(b);});
+
+    var ap=document.getElementById('a-pass');ap.innerHTML='';
+    passes.slice(0,12).forEach(function(p){
+      var li=el('div','li');
+      var l=el('div');var t=el('div',p.off?'done':null,dstr(p.date)+' '+p.time);l.appendChild(t);
+      l.appendChild(el('div','m',p.group+' · '+(p.off?'Inställt':p.who.length?p.who.join(', '):'Saknar instruktör')));
+      var b=el('button','btn small',p.off?'Återställ':'Ställ in');b.type='button';
+      b.addEventListener('click',function(){p.off=!p.off;toast(p.off?'Passet är inställt och syns så på sajten':'Passet är tillbaka i schemat');renderAll();});
+      var bs=el('div','btns');bs.appendChild(b);li.appendChild(l);li.appendChild(bs);ap.appendChild(li);
+    });
+    var more=el('div','li');more.appendChild(el('div','m','… och '+(passes.length-12)+' pass till. Nya pass eller en ny termin läggs till här.'));ap.appendChild(more);
+
+    var ai=document.getElementById('a-instr');ai.innerHTML='';
+    instructors.forEach(function(n){
+      var li=el('div','li');var l=el('div');l.appendChild(el('div',null,n));
+      var cnt=passes.filter(function(p){return p.who.indexOf(n)>-1;}).length;
+      l.appendChild(el('div','m',cnt+' pass de närmaste veckorna'));
+      var bs=el('div','btns');
+      var c=el('button','btn small','Kopiera länk');c.type='button';c.addEventListener('click',function(){toast('Länken till '+n+' är kopierad (i skissen händer inget)');});
+      var r=el('button','btn small','Ta bort');r.type='button';r.addEventListener('click',function(){
+        if(instructors.length<2){toast('Minst en instruktör behövs i skissen');return;}
+        instructors=instructors.filter(function(x){return x!==n;});passes.forEach(function(p){p.who=p.who.filter(function(x){return x!==n;});});
+        if(me===n)me=instructors[0];toast(n+' är borttagen och länken slutar fungera');renderAll();});
+      bs.appendChild(c);bs.appendChild(r);li.appendChild(l);li.appendChild(bs);ai.appendChild(li);
+    });
+
+    var as=document.getElementById('a-sign');as.innerHTML='';
+    if(!signups.length) as.appendChild(el('div','li m','Inga anmälningar.'));
+    signups.forEach(function(s){
+      var li=el('div','li');var l=el('div');l.appendChild(el('div',s.done?'done':null,s.n+' · '+s.goal));
+      l.appendChild(el('div','m',s.who+' · '+s.date));
+      var bs=el('div','btns');
+      var d=el('button','btn small',s.done?'Ångra':'Klar');d.type='button';d.addEventListener('click',function(){s.done=!s.done;renderAll();});
+      var r=el('button','btn small','Ta bort');r.type='button';r.addEventListener('click',function(){signups=signups.filter(function(x){return x!==s;});toast('Uppgifterna är borttagna');renderAll();});
+      bs.appendChild(d);bs.appendChild(r);li.appendChild(l);li.appendChild(bs);as.appendChild(li);
+    });
+  }
+  document.getElementById('add-instr').addEventListener('submit',function(e){
+    e.preventDefault();var inp=document.getElementById('new-instr'),n=inp.value.trim();if(!n)return;
+    if(instructors.indexOf(n)<0)instructors.push(n);inp.value='';toast(n+' är tillagd och har fått en egen länk');renderAll();
+  });
+  document.getElementById('xls').addEventListener('click',function(){
+    var rows=[['Datum','Namn','Vem ska träna','Ärende','Klar']].concat(signups.map(function(s){return [s.date,s.n,s.who,s.goal,s.done?'Ja':'Nej'];}));
+    var csv='﻿'+rows.map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(';');}).join('\r\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='anmalningar-skiss.csv';
+    document.body.appendChild(a);a.click();a.remove();toast('Filen öppnas i Excel');
+  });
+
+  /* ---------- view switch ---------- */
+  var tabs=document.querySelectorAll('.switch button');
+  tabs.forEach(function(b){b.addEventListener('click',function(){
+    tabs.forEach(function(x){x.setAttribute('aria-selected',String(x===b));});
+    ['instr','pub','admin'].forEach(function(v){document.getElementById('v-'+v).hidden=(v!==b.dataset.view);});
+    window.scrollTo(0,0);
+  });});
+
+  function renderAll(){fillMe();renderCal();renderPub();renderAdmin();}
+  renderAll();
+})();
+</script>
+</body>
+</html>

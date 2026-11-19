@@ -101,10 +101,13 @@
 <section class="sched" id="schema">
   <div class="wrap">
     <h2 class="display">Schema</h2>
-    <span class="flag">Exempelschema – byts mot riktiga tider</span>
-    <div class="tabs" role="tablist" aria-label="Välj dag" id="tabs"></div>
-    <div class="day" id="day" role="tabpanel"></div>
-    <p class="note">[Här lyfter vi vilka kvällar barn och vuxna tränar efter varandra, så att familjen kan komma samtidigt.]</p>
+    <div class="weeknav" id="weeknav" hidden>
+      <button type="button" id="wk-prev" aria-label="Föregående vecka">←</button>
+      <b id="wk-label" aria-live="polite"></b>
+      <button type="button" id="wk-next" aria-label="Nästa vecka">→</button>
+    </div>
+    <div class="weekgrid" id="weekgrid"></div>
+    <p class="note">Barn, ungdomar och vuxna tränar efter varandra alla tre kvällarna, så hela familjen kan komma samtidigt.</p>
   </div>
 </section>
 
@@ -155,6 +158,7 @@
       <div class="field"><label for="name">Ditt namn</label><input id="name" type="text" autocomplete="name" required></div>
       <div class="field"><label for="email">E-post</label><input id="email" type="email" autocomplete="email" required></div>
       <div class="field"><label for="tel">Mobil</label><input id="tel" type="tel" autocomplete="tel"></div>
+      <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"><label for="webbplats">Lämna tomt</label><input id="webbplats" type="text" tabindex="-1" autocomplete="off"></div>
       <p class="err" id="err" role="alert" hidden>Fyll i namn och en giltig e-postadress.</p>
       <button class="btn primary" type="submit" id="submit">Skicka anmälan</button>
     </form>
@@ -181,7 +185,7 @@
 
 </main>
 
-<footer>Team Sanshin – karate på Söder, med rötter i Sanshin Kan sedan 1969</footer>
+<footer>Team Sanshin – karate på Söder, med rötter i Sanshin Kan sedan 1969<br><a class="admin-link" href="admin/">Admin</a></footer>
 
 <button class="fab" type="button" id="fab" aria-haspopup="dialog"><img src="bilder/spel-tamas.jpg" width="624" height="400" alt=""><span>Spela spelet</span></button>
 
@@ -206,6 +210,7 @@
   </div>
 </dialog>
 
+<script src="schema.js"></script>
 <script src="skript.js"></script>
 </body>
 </html>

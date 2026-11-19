@@ -1,28 +1,57 @@
 (function(){
-  /* schedule (example data) */
-  var week=[
-    {d:'Måndag',s:[['17.00–17.45','Barn 7–9 år, nybörjare','barn','Barn'],['17.50–18.50','Barn 10–13 år, fortsättning','barn','Barn'],['19.00–20.15','Vuxna, alla nivåer','vuxna','Vuxna']]},
-    {d:'Onsdag',s:[['17.00–17.45','Barn 7–9 år, nybörjare','barn','Barn'],['17.50–18.50','Barn 10–13 år, fortsättning','barn','Barn'],['19.00–20.15','Vuxna, nybörjare och återvändare','vuxna','Vuxna']]},
-    {d:'Torsdag',s:[['17.00–18.00','Barn, fortsättning','barn','Barn'],['18.15–19.30','Vuxna, alla nivåer','vuxna','Vuxna']]}
-  ];
-  var tabs=document.getElementById('tabs'), day=document.getElementById('day');
-  function show(i){
-    Array.prototype.forEach.call(tabs.children,function(b,j){b.setAttribute('aria-selected',j===i?'true':'false');});
-    day.textContent='';
-    week[i].s.forEach(function(r){
-      var row=document.createElement('div');row.className='sess';
-      var t=document.createElement('time');t.textContent=r[0];
-      var box=document.createElement('div');
-      var name=document.createElement('span');name.textContent=r[1];
-      var tag=document.createElement('span');tag.className='tag '+r[2];tag.textContent=r[3];
-      box.appendChild(name);box.appendChild(tag);row.appendChild(t);row.appendChild(box);day.appendChild(row);
-    });
+  /* On GitHub Pages (the shared preview) there is no server: schedule and form stay a demo there. */
+  var DEMO=/github\.io$/.test(location.hostname)||location.protocol==='file:';
+
+  /* schedule: the weekly pattern lives in schema.js; with a server, real weeks with instructors are shown */
+  var week=window.SCHEMA||[], grid=document.getElementById('weekgrid'), nav=document.getElementById('weeknav');
+  var TAGS={}; week.forEach(function(w){w.s.forEach(function(r){TAGS[r[1]]=[r[2],r[3]];});});
+  var DAYS=['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
+  var MONTHS=['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+  function mk(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+  function toDate(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+  var CATS={barn:['barn','Barn'],ungdom:['ungdom','Ungdom'],vuxna:['vuxna','Vuxna'],'ungdom-vuxna':['vuxna','Vuxna och ungdom']};
+  function session(time,group,extra,off,cat){
+    var row=mk('div','sess'+(off?' off':'')), box=mk('div'), tg=CATS[cat]||TAGS[group];
+    box.appendChild(mk('span',null,group));
+    if(tg)box.appendChild(mk('span','tag '+tg[0],tg[1]));
+    if(extra)box.appendChild(mk('span','leader',extra));
+    row.appendChild(mk('time',null,time));row.appendChild(box);return row;
   }
-  week.forEach(function(w,i){
-    var b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.textContent=w.d;
-    b.addEventListener('click',function(){show(i);});tabs.appendChild(b);
-  });
-  show(0);
+  function fit(){var n=grid.querySelectorAll('.day').length||1;grid.style.setProperty('--dagar',n);grid.classList.toggle('many',n>=5);}
+  function drawPattern(){
+    grid.textContent='';
+    week.forEach(function(w){
+      var day=mk('div','day');day.appendChild(mk('h3',null,w.d));
+      w.s.forEach(function(r){day.appendChild(session(r[0],r[1]));});
+      grid.appendChild(day);
+    });
+    fit();
+  }
+  var offset=0, prev=document.getElementById('wk-prev'), next=document.getElementById('wk-next'), label=document.getElementById('wk-label');
+  function loadWeek(n){
+    prev.disabled=next.disabled=true;
+    fetch('api/index.php?do=schema&vecka='+n).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){
+      offset=n;
+      var a=toDate(j.fran), b=toDate(j.till);
+      label.textContent='Vecka '+j.vecka+' · '+a.getDate()+(a.getMonth()!==b.getMonth()?' '+MONTHS[a.getMonth()]:'')+'–'+b.getDate()+' '+MONTHS[b.getMonth()];
+      grid.textContent='';
+      var day=null, last='';
+      j.pass.forEach(function(p){
+        if(p.datum!==last){last=p.datum;var d=toDate(p.datum);day=mk('div','day');day.appendChild(mk('h3',null,DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]));grid.appendChild(day);}
+        day.appendChild(session(p.tid,(p.extra?'Extrapass: ':'')+p.grupp,
+          p.installt?'Inställt'+(p.orsak?': '+p.orsak:''):p.ledare.length?'Leds av '+p.ledare.join(' och '):'Instruktör meddelas',p.installt,p.kategori));
+      });
+      if(!j.pass.length)grid.appendChild(mk('p','note','Ingen träning den här veckan.'));
+      fit();
+      nav.hidden=false;prev.disabled=n<=0;next.disabled=!!j.sista;
+    }).catch(function(){ if(!grid.children.length)drawPattern(); prev.disabled=offset<=0; next.disabled=false; });
+  }
+  drawPattern();
+  if(!DEMO){
+    prev.addEventListener('click',function(){loadWeek(offset-1);});
+    next.addEventListener('click',function(){loadWeek(offset+1);});
+    loadWeek(0);
+  }
 
 
   /* booking form (demo) */
@@ -43,12 +72,29 @@
     form.hidden=false;done.hidden=true;sync();
     if(dlg.open)dlg.close();
   });
+  var ERR_TEXT=err.textContent, shown=Date.now();
   form.addEventListener('submit',function(e){
     e.preventDefault();
-    var ok=document.getElementById('name').value.trim()&&document.getElementById('email').checkValidity()&&document.getElementById('email').value;
-    err.hidden=!!ok; if(!ok)return;
-    done.querySelector('b').textContent=DONE[goal()];
-    form.hidden=true;done.hidden=false;
+    var email=document.getElementById('email');
+    var ok=document.getElementById('name').value.trim()&&email.checkValidity()&&email.value;
+    err.textContent=ERR_TEXT; err.hidden=!!ok; if(!ok)return;
+    function finish(){
+      done.querySelector('b').textContent=DONE[goal()];
+      if(!DEMO) done.querySelector('p').textContent='Vi har skickat en bekräftelse till '+email.value.trim()+'.';
+      form.hidden=true;done.hidden=false;
+    }
+    if(DEMO){finish();return;}
+    var who=[].map.call(form.querySelectorAll('input[name="who"]:checked'),function(i){return i.value;});
+    var label=submit.textContent; submit.disabled=true; submit.textContent='Skickar …';
+    fetch('api/index.php?do=anmalan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      arende:goal(), vem:who, alder:whoBarn.checked?document.getElementById('age').value:'',
+      namn:document.getElementById('name').value, epost:email.value, mobil:document.getElementById('tel').value,
+      webbplats:document.getElementById('webbplats').value, tid:Date.now()-shown
+    })}).then(function(r){
+      return r.json().catch(function(){return {};}).then(function(j){ if(!r.ok) throw new Error(j.fel||''); });
+    }).then(finish,function(x){
+      err.textContent=(!(x instanceof TypeError)&&x&&x.message)||'Det gick inte att skicka. Kolla uppkopplingen och försök igen.'; err.hidden=false;
+    }).then(function(){submit.disabled=false;submit.textContent=label;});
   });
 
   /* game sheet: the game loads in an iframe when the sheet opens and is removed when it closes */

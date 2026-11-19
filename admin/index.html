@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin – Team Sanshin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../intern/intern.css">
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="../"><i></i>Team Sanshin</a>
+  <button class="btn small" type="button" id="logout" hidden>Logga ut</button>
+</header>
+
+<main class="wrap">
+  <div class="lead">
+    <h1 class="display">Admin</h1>
+  </div>
+
+  <p class="msg" id="laddar">Hämtar …</p>
+  <p class="msg bad" id="fel" hidden></p>
+
+  <form class="form" id="login" hidden>
+    <input type="password" id="losen" autocomplete="current-password" placeholder="Lösenord" aria-label="Lösenord" required>
+    <button class="btn primary" type="submit">Logga in</button>
+  </form>
+
+  <div id="innehall" hidden>
+    <nav class="flikar" role="tablist" aria-label="Välj del">
+      <button type="button" role="tab" id="f-anmalningar" aria-controls="v-anmalningar">Anmälningar <span class="badge" id="b-anmalningar"></span></button>
+      <button type="button" role="tab" id="f-pass" aria-controls="v-pass">Pass <span class="badge" id="b-pass"></span></button>
+      <button type="button" role="tab" id="f-instruktorer" aria-controls="v-instruktorer">Instruktörer</button>
+    </nav>
+
+    <section class="sec" id="v-anmalningar" role="tabpanel" aria-labelledby="f-anmalningar">
+      <p class="muted">Anmälningar från sajten. Bocka av när du har hört av dig. Ta bort om någon ber om det.</p>
+      <div class="list" id="anmalningar"></div>
+      <div class="form"><a class="btn primary" href="../api/index.php?do=excel" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner till Excel</a></div>
+    </section>
+
+    <section class="sec" id="v-pass" role="tabpanel" aria-labelledby="f-pass" hidden>
+      <div class="filter" role="group" aria-label="Visa">
+        <button type="button" class="chip" data-f="alla" aria-pressed="true">Alla pass</button>
+        <button type="button" class="chip" data-f="saknas" aria-pressed="false">Saknar instruktör</button>
+        <button type="button" class="chip" data-f="schema" aria-pressed="false">Veckoschema</button>
+      </div>
+      <p class="muted hjalp" id="pass-hjalp">De närmaste fyra veckorna. Välj vem som leder passet, eller ställ in det. Det syns direkt på sajten.</p>
+      <div id="pass"></div>
+
+      <div id="schema" hidden>
+        <p class="muted hjalp">Passen som återkommer varje vecka, och enstaka extrapass. Ändringar syns direkt på sajten och för instruktörerna.</p>
+        <div class="form"><button class="btn primary" type="button" id="ny-mall">+ Lägg till pass</button></div>
+
+        <form class="mallform" id="mallform" hidden novalidate>
+          <h3 class="display" id="mallform-rubrik">Nytt pass</h3>
+          <fieldset class="val">
+            <legend>Hur ofta?</legend>
+            <label><input type="radio" name="typ" value="vecka" checked> Varje vecka</label>
+            <label><input type="radio" name="typ" value="extra"> Ett enstaka pass</label>
+          </fieldset>
+          <div class="falt" id="falt-veckodag"><label for="m-veckodag">Veckodag</label>
+            <select id="m-veckodag"><option value="1">Måndag</option><option value="2">Tisdag</option><option value="3">Onsdag</option><option value="4">Torsdag</option><option value="5">Fredag</option><option value="6">Lördag</option><option value="7">Söndag</option></select></div>
+          <div class="falt" id="falt-datum" hidden><label for="m-datum">Datum</label><input type="date" id="m-datum"></div>
+          <div class="falt-rad">
+            <div class="falt"><label for="m-start">Starttid</label><input type="time" id="m-start" step="300"></div>
+            <div class="falt"><label for="m-slut">Sluttid</label><input type="time" id="m-slut" step="300"></div>
+          </div>
+          <div class="falt"><label for="m-grupp">Grupp</label><input id="m-grupp" list="grupper" placeholder="Till exempel Barn nybörjare" autocomplete="off"><datalist id="grupper"></datalist></div>
+          <div class="falt"><label for="m-kategori">För vem? (styr färgen på sajten)</label>
+            <select id="m-kategori"><option value="barn">Barn</option><option value="ungdom">Ungdom</option><option value="vuxna">Vuxna</option><option value="ungdom-vuxna">Vuxna och ungdom</option></select></div>
+          <div class="falt-rad" id="falt-period">
+            <div class="falt"><label for="m-fran">Gäller från (valfritt)</label><input type="date" id="m-fran"></div>
+            <div class="falt"><label for="m-till">Gäller till (valfritt)</label><input type="date" id="m-till"></div>
+          </div>
+          <div class="form">
+            <button class="btn primary" type="submit">Spara</button>
+            <button class="btn" type="button" id="mallform-avbryt">Avbryt</button>
+          </div>
+        </form>
+
+        <div id="mallar"></div>
+      </div>
+    </section>
+
+    <section class="sec" id="v-instruktorer" role="tabpanel" aria-labelledby="f-instruktorer" hidden>
+      <p class="muted">Instruktörerna du kan välja under Pass.</p>
+      <div class="list" id="instruktorer"></div>
+      <form class="form" id="ny">
+        <input id="ny-namn" placeholder="Namn" aria-label="Namn på ny instruktör" autocomplete="off">
+        <input id="ny-epost" type="email" placeholder="E-post (för påminnelser)" aria-label="E-post till ny instruktör" autocomplete="off">
+        <button class="btn" type="submit">Lägg till</button>
+      </form>
+
+      <h3 class="veckorubrik">Körda pass över tid</h3>
+      <p class="muted hjalp">Pass som varje instruktör har lett, månad för månad. Inställda pass räknas inte.</p>
+      <div class="falt-rad">
+        <div class="falt"><label for="s-fran">Från</label><input type="date" id="s-fran"></div>
+        <div class="falt"><label for="s-till">Till</label><input type="date" id="s-till"></div>
+      </div>
+      <div id="statistik"></div>
+      <div class="form"><a class="btn primary" id="s-excel" href="#" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner till Excel</a></div>
+    </section>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="../intern/gemensamt.js"></script>
+<script>
+(function () {
+  var data = null, filter = 'alla';
+  var $ = function (id) { return document.getElementById(id); };
+  var ARENDEN = {termin: 'Terminen', prov: 'Provträning', present: 'Presentkort'};
+  var VEM = {barn: 'Barn', ungdom: 'Ungdom', du: 'Vuxen'};
+  var FLIKAR = ['anmalningar', 'pass', 'instruktorer'];
+
+  /* ---------- flikar ---------- */
+  function visaFlik(namn) {
+    if (FLIKAR.indexOf(namn) < 0) namn = 'anmalningar';
+    FLIKAR.forEach(function (f) {
+      $('f-' + f).setAttribute('aria-selected', String(f === namn));
+      $('v-' + f).hidden = f !== namn;
+    });
+    if (location.hash !== '#' + namn) history.replaceState(null, '', '#' + namn);
+  }
+  FLIKAR.forEach(function (f) { $('f-' + f).addEventListener('click', function () { visaFlik(f); }); });
+  window.addEventListener('hashchange', function () { visaFlik(location.hash.slice(1)); });
+
+  /* ---------- hämta och spara ---------- */
+  function ladda() {
+    return hamta('admin').then(function (j) {
+      data = j;
+      $('laddar').hidden = true; $('login').hidden = true; $('fel').hidden = true;
+      $('innehall').hidden = false; $('logout').hidden = false;
+      rita();
+    }).catch(function (e) {
+      $('laddar').hidden = true;
+      if (e.status === 401) { $('innehall').hidden = true; $('logout').hidden = true; $('login').hidden = false; $('losen').focus(); }
+      else { $('fel').textContent = e.message; $('fel').hidden = false; }
+    });
+  }
+
+  function gor(vad, varden, text) {
+    return hamta(vad, varden).then(function () { if (text) meddela(text); return ladda(); })
+      .catch(function (e) { meddela(e.message, true); if (e.status === 401) ladda(); });
+  }
+
+  function knapp(text, fn, klass) {
+    var b = el('button', klass || 'btn small', text); b.type = 'button';
+    b.addEventListener('click', function () { b.disabled = true; Promise.resolve(fn()).then(function () { b.disabled = false; }); });
+    return b;
+  }
+
+  function rad(rubrik, under, knappar, klass) {
+    var li = el('div', 'li'), l = el('div');
+    l.appendChild(el('div', klass || null, rubrik)); l.appendChild(el('div', 'm', under));
+    var bs = el('div', 'btns'); knappar.forEach(function (k) { bs.appendChild(k); });
+    li.appendChild(l); li.appendChild(bs); return li;
+  }
+
+  /* ---------- rita ---------- */
+  function rita() {
+    var nya = data.anmalningar.filter(function (a) { return !a.klar; }).length;
+    var saknas = data.pass.filter(function (p) { return !p.installt && !p.ledare.length; }).length;
+    $('b-anmalningar').textContent = nya || ''; $('b-anmalningar').title = nya + ' nya';
+    $('b-pass').textContent = saknas || ''; $('b-pass').title = saknas + ' saknar instruktör';
+    ritaAnmalningar(); ritaPass(); ritaInstruktorer();
+  }
+
+  function ritaAnmalningar() {
+    var an = $('anmalningar'); an.innerHTML = '';
+    if (!data.anmalningar.length) an.appendChild(el('div', 'li m', 'Inga anmälningar än.'));
+    data.anmalningar.forEach(function (a) {
+      var vem = a.vem.split(',').map(function (v) { return VEM[v] || v; }).join(' + ') + (a.alder ? ', ' + a.alder + ' år' : '');
+      an.appendChild(rad(a.namn + ' · ' + (ARENDEN[a.arende] || a.arende),
+        vem + ' · ' + a.epost + (a.mobil ? ' · ' + a.mobil : '') + ' · ' + a.skapad.slice(0, 16),
+        [knapp(a.klar ? 'Ångra' : 'Klar', function () { return gor('anmalan_klar', {id: a.id, klar: !a.klar}); }),
+         knapp('Ta bort', function () {
+           if (!confirm('Ta bort anmälan från ' + a.namn + '? Det går inte att ångra.')) return;
+           return gor('ta_bort_anmalan', {id: a.id}, 'Anmälan är borttagen');
+         })], a.klar ? 'done' : null));
+    });
+  }
+
+  function ritaPass() {
+    var visaSchema = filter === 'schema';
+    $('schema').hidden = !visaSchema; $('pass').hidden = visaSchema; $('pass-hjalp').hidden = visaSchema;
+    if (visaSchema) { ritaSchema(); return; }
+    var box = $('pass'); box.innerHTML = '';
+    var lista = data.pass.filter(function (p) { return filter === 'alla' || (!p.installt && !p.ledare.length); });
+    if (!lista.length) { box.appendChild(el('p', 'msg', 'Alla pass har en instruktör.')); return; }
+    var nu = null;
+    lista.forEach(function (p) {
+      var v = vecka(p.datum);
+      if (v !== nu) { nu = v; box.appendChild(el('h3', 'veckorubrik', 'Vecka ' + v)); }
+      var saknasHar = !p.installt && !p.ledare.length;
+      var kort = el('div', 'akort' + (p.installt ? ' off' : saknasHar ? ' need' : ''));
+
+      var topp = el('div', 'atopp'), txt = el('div');
+      var t = el('div', 'at', datumtext(p.datum) + ' · ' + p.tid);
+      if (p.extra) t.appendChild(el('span', 'tag', 'Extrapass'));
+      if (p.installt) t.appendChild(el('span', 'tag', 'Inställt'));
+      else if (saknasHar) t.appendChild(el('span', 'tag y', 'Saknar instruktör'));
+      txt.appendChild(t); txt.appendChild(el('div', 'm', p.grupp));
+      if (p.installt && p.orsak) txt.appendChild(el('div', 'orsak', 'Orsak: ' + p.orsak));
+      topp.appendChild(txt);
+      var installForm = el('form', 'installform'); installForm.hidden = true;
+      if (p.installt) {
+        topp.appendChild(knapp('Återställ', function () { return gor('stall_in', {pass: p.id, installt: false}, 'Passet är tillbaka i schemat'); }));
+      } else {
+        var sk = el('button', 'btn small', 'Ställ in'); sk.type = 'button';
+        sk.addEventListener('click', function () { installForm.hidden = false; sk.hidden = true; orsakIn.focus(); });
+        topp.appendChild(sk);
+        var orsakIn = el('input'); orsakIn.maxLength = 200; orsakIn.placeholder = 'Orsak, till exempel "Lokalen är upptagen"';
+        orsakIn.setAttribute('aria-label', 'Orsak till att passet ställs in (visas på sajten)');
+        var ok = el('button', 'btn small primary', 'Ställ in passet'); ok.type = 'submit';
+        var avbryt = el('button', 'btn small', 'Avbryt'); avbryt.type = 'button';
+        avbryt.addEventListener('click', function () { installForm.hidden = true; sk.hidden = false; });
+        installForm.appendChild(el('label', 'm', 'Orsaken visas på sajten (valfritt)'));
+        installForm.appendChild(orsakIn); installForm.appendChild(ok); installForm.appendChild(avbryt);
+        installForm.addEventListener('submit', function (e) {
+          e.preventDefault(); ok.disabled = true;
+          gor('stall_in', {pass: p.id, installt: true, orsak: orsakIn.value.trim()}, 'Passet är inställt');
+        });
+      }
+      kort.appendChild(topp);
+      kort.appendChild(installForm);
+
+      if (!p.installt) {
+        var led = el('div', 'ledare');
+        p.ledare.forEach(function (l) {
+          var c = el('span', 'namnchip', l.namn);
+          var x = knapp('×', function () { return gor('admin_bemanna', {pass: p.id, instruktor: l.id, kommer: false}, l.namn + ' är borttagen från passet'); }, 'x');
+          x.setAttribute('aria-label', 'Ta bort ' + l.namn + ' från passet');
+          c.appendChild(x); led.appendChild(c);
+        });
+        var har = p.ledare.map(function (l) { return l.id; });
+        var lediga = data.instruktorer.filter(function (i) { return har.indexOf(i.id) < 0; });
+        if (lediga.length) {
+          var sel = el('select', 'valj');
+          sel.setAttribute('aria-label', 'Lägg till instruktör på passet ' + datumtext(p.datum) + ' ' + p.tid);
+          var f = el('option', null, p.ledare.length ? '+ Lägg till' : '+ Välj instruktör'); f.value = ''; sel.appendChild(f);
+          lediga.forEach(function (i) { var o = el('option', null, i.namn); o.value = i.id; sel.appendChild(o); });
+          sel.addEventListener('change', function () {
+            if (!sel.value) return;
+            var namn = sel.options[sel.selectedIndex].text; sel.disabled = true;
+            gor('admin_bemanna', {pass: p.id, instruktor: +sel.value, kommer: true}, namn + ' leder ' + datumtext(p.datum) + ' ' + p.tid.split('–')[0]);
+          });
+          led.appendChild(sel);
+        }
+        kort.appendChild(led);
+      }
+      box.appendChild(kort);
+    });
+  }
+
+  /* ---------- veckoschema ---------- */
+  var VECKODAGAR = ['', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
+  var KATEGORI = {barn: 'Barn', ungdom: 'Ungdom', vuxna: 'Vuxna', 'ungdom-vuxna': 'Vuxna och ungdom'};
+  var redigerar = null;
+  function idag() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function ar_extra(m) { return m.fran && m.fran === m.till; }
+
+  function ritaSchema() {
+    var box = $('mallar'); box.innerHTML = '';
+    var grupper = {}; data.mallar.forEach(function (m) { grupper[m.grupp] = 1; });
+    $('grupper').innerHTML = ''; Object.keys(grupper).sort().forEach(function (g) { var o = el('option'); o.value = g; $('grupper').appendChild(o); });
+
+    function mallrad(m, rubrik) {
+      var period = ar_extra(m) ? '' : (m.fran ? ' · från ' + datumtext(m.fran) : '') + (m.till ? ' · till ' + datumtext(m.till) : '');
+      var slut = !ar_extra(m) && m.till && m.till < idag();
+      return rad(rubrik, m.grupp + ' · ' + KATEGORI[m.kategori] + period + (slut ? ' · har slutat gälla' : ''),
+        [knapp('Ändra', function () { oppnaForm(m); }),
+         knapp('Ta bort', function () {
+           if (!confirm('Ta bort ' + rubrik + ', ' + m.grupp + '?' + (ar_extra(m) ? '' : ' Passet försvinner från alla kommande veckor.') + ' Instruktörer som anmält sig till det tas också bort.')) return;
+           return gor('ta_bort_mall', {id: m.id}, 'Passet är borttaget');
+         })], slut ? 'done' : null);
+    }
+
+    // Pass som har slutat gälla visas inte, men finns kvar för statistiken.
+    var vecko = data.mallar.filter(function (m) { return !ar_extra(m) && !(m.till && m.till < idag()); });
+    var dagar = {};
+    vecko.forEach(function (m) { (dagar[m.veckodag] = dagar[m.veckodag] || []).push(m); });
+    if (!vecko.length) box.appendChild(el('p', 'msg', 'Inga återkommande pass än.'));
+    Object.keys(dagar).sort().forEach(function (d) {
+      box.appendChild(el('h3', 'veckorubrik', VECKODAGAR[d]));
+      var l = el('div', 'list'); dagar[d].forEach(function (m) { l.appendChild(mallrad(m, m.tid)); }); box.appendChild(l);
+    });
+
+    var extra = data.mallar.filter(function (m) { return ar_extra(m) && m.fran >= idag(); })
+      .sort(function (a, b) { return (a.fran + a.tid) < (b.fran + b.tid) ? -1 : 1; });
+    box.appendChild(el('h3', 'veckorubrik', 'Extrapass'));
+    var le = el('div', 'list');
+    if (!extra.length) le.appendChild(el('div', 'li m', 'Inga kommande extrapass.'));
+    extra.forEach(function (m) { le.appendChild(mallrad(m, datumtext(m.fran) + ' · ' + m.tid)); });
+    box.appendChild(le);
+  }
+
+  function typ() { return document.querySelector('input[name="typ"]:checked').value; }
+  function synkaTyp() {
+    var ex = typ() === 'extra';
+    $('falt-veckodag').hidden = ex; $('falt-period').hidden = ex; $('falt-datum').hidden = !ex;
+  }
+  function oppnaForm(m) {
+    redigerar = m ? m.id : null;
+    var ex = m ? ar_extra(m) : false;
+    document.querySelector('input[name="typ"][value="' + (ex ? 'extra' : 'vecka') + '"]').checked = true;
+    var tider = m ? m.tid.split('–') : ['', ''];
+    $('m-veckodag').value = m ? m.veckodag : 1;
+    $('m-datum').value = ex ? m.fran : '';
+    $('m-start').value = tider[0].replace('.', ':'); $('m-slut').value = (tider[1] || '').replace('.', ':');
+    $('m-grupp').value = m ? m.grupp : ''; $('m-kategori').value = m ? m.kategori : 'barn';
+    $('m-fran').value = m && !ex ? (m.fran || '') : ''; $('m-till').value = m && !ex ? (m.till || '') : '';
+    $('mallform-rubrik').textContent = m ? 'Ändra pass' : 'Nytt pass';
+    synkaTyp();
+    $('mallform').hidden = false; $('ny-mall').hidden = true;
+    $('mallform').scrollIntoView({block: 'start'});
+  }
+  function stangForm() { $('mallform').hidden = true; $('ny-mall').hidden = false; redigerar = null; }
+  document.querySelectorAll('input[name="typ"]').forEach(function (r) { r.addEventListener('change', synkaTyp); });
+  $('ny-mall').addEventListener('click', function () { oppnaForm(null); });
+  $('mallform-avbryt').addEventListener('click', stangForm);
+  $('mallform').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var ex = typ() === 'extra', spara = $('mallform').querySelector('button[type="submit"]');
+    var varden = {id: redigerar, extra: ex, veckodag: +$('m-veckodag').value, datum: $('m-datum').value,
+      start: $('m-start').value, slut: $('m-slut').value, grupp: $('m-grupp').value.trim(), kategori: $('m-kategori').value,
+      fran: $('m-fran').value, till: $('m-till').value};
+    spara.disabled = true;
+    hamta('spara_mall', varden).then(function () {
+      meddela(redigerar ? 'Passet är ändrat' : 'Passet är tillagt'); stangForm(); return ladda();
+    }).catch(function (e) { meddela(e.message, true); }).then(function () { spara.disabled = false; });
+  });
+
+  function ritaInstruktorer() {
+    var ins = $('instruktorer'); ins.innerHTML = '';
+    if (!data.instruktorer.length) ins.appendChild(el('div', 'li m', 'Inga instruktörer än.'));
+    data.instruktorer.forEach(function (i) {
+      var r = rad(i.namn, (i.epost || 'ingen e-post, får inga påminnelser') + ' · ' + i.antal + ' pass närmaste veckorna',
+        [knapp('Ändra', function () {
+           var f = el('form', 'form andraform'), n = el('input'), e = el('input');
+           n.value = i.namn; n.setAttribute('aria-label', 'Namn'); n.placeholder = 'Namn';
+           e.type = 'email'; e.value = i.epost || ''; e.placeholder = 'E-post (för påminnelser)'; e.setAttribute('aria-label', 'E-post');
+           var s = el('button', 'btn small primary', 'Spara'); s.type = 'submit';
+           var a = el('button', 'btn small', 'Avbryt'); a.type = 'button';
+           a.addEventListener('click', function () { ritaInstruktorer(); });
+           f.appendChild(n); f.appendChild(e); f.appendChild(s); f.appendChild(a);
+           f.addEventListener('submit', function (ev) {
+             ev.preventDefault(); s.disabled = true;
+             gor('andra_instruktor', {id: i.id, namn: n.value.trim(), epost: e.value.trim()}, 'Ändringen är sparad').then(function () { s.disabled = false; });
+           });
+           r.innerHTML = ''; r.appendChild(f); n.focus();
+         }),
+         knapp('Ta bort', function () {
+           if (!confirm('Ta bort ' + i.namn + '? Hens kommande pass blir utan instruktör, och hen försvinner ur statistiken över körda pass.')) return;
+           return gor('ta_bort_instruktor', {id: i.id}, i.namn + ' är borttagen');
+         })]);
+      ins.appendChild(r);
+    });
+    laddaStatistik();
+  }
+
+  /* ---------- statistik över tid ---------- */
+  function laddaStatistik() {
+    var fran = $('s-fran').value, till = $('s-till').value;
+    $('s-excel').href = '../api/index.php?do=excel_instruktorer&fran=' + fran + '&till=' + till;
+    return hamta('statistik&fran=' + fran + '&till=' + till).then(ritaStatistik)
+      .catch(function (e) { meddela(e.message, true); });
+  }
+
+  function ritaStatistik(j) {
+    var box = $('statistik'); box.innerHTML = '';
+    var manader = [], d = dag(j.fran.slice(0, 7) + '-01'), slut = j.till.slice(0, 7);
+    while (true) {
+      var m = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+      if (m > slut) break;
+      manader.push(m); d = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    }
+    var wrap = el('div', 'tabellwrap'), t = el('table', 'stat-tabell'), thead = el('thead'), hr = el('tr');
+    hr.appendChild(el('th', null, 'Instruktör'));
+    manader.forEach(function (m) { hr.appendChild(el('th', 'n', MANADER[+m.slice(5) - 1] + (manader.length > 12 || m.slice(0, 4) !== j.till.slice(0, 4) ? ' ' + m.slice(2, 4) : ''))); });
+    hr.appendChild(el('th', 'n', 'Totalt'));
+    thead.appendChild(hr); t.appendChild(thead);
+    var tb = el('tbody'), summa = {}, total = 0;
+    j.instruktorer.forEach(function (i) {
+      var per = {}; i.pass.forEach(function (p) { var k = p.datum.slice(0, 7); per[k] = (per[k] || 0) + 1; summa[k] = (summa[k] || 0) + 1; });
+      var tr = el('tr'); tr.appendChild(el('th', null, i.namn));
+      manader.forEach(function (m) { tr.appendChild(el('td', 'n' + (per[m] ? '' : ' noll'), per[m] || '–')); });
+      tr.appendChild(el('td', 'n tot', i.antal)); total += i.antal; tb.appendChild(tr);
+    });
+    var sr = el('tr', 'summa'); sr.appendChild(el('th', null, 'Alla'));
+    manader.forEach(function (m) { sr.appendChild(el('td', 'n', summa[m] || 0)); });
+    sr.appendChild(el('td', 'n tot', total)); tb.appendChild(sr);
+    t.appendChild(tb); wrap.appendChild(t); box.appendChild(wrap);
+
+    j.instruktorer.filter(function (i) { return i.antal; }).forEach(function (i) {
+      var det = el('details', 'detalj'), sum = el('summary', null, i.namn + ' · ' + i.antal + ' pass');
+      det.appendChild(sum);
+      var ul = el('ul');
+      i.pass.forEach(function (p) { ul.appendChild(el('li', null, datumtext(p.datum) + ' · ' + p.tid + ' · ' + p.grupp)); });
+      det.appendChild(ul); box.appendChild(det);
+    });
+    if (!total) box.appendChild(el('p', 'msg', 'Inga körda pass under perioden.'));
+  }
+
+  (function () {
+    var nu = new Date(), pad = function (n) { return ('0' + n).slice(-2); };
+    $('s-fran').value = nu.getFullYear() + '-01-01';
+    $('s-till').value = nu.getFullYear() + '-' + pad(nu.getMonth() + 1) + '-' + pad(nu.getDate());
+    ['s-fran', 's-till'].forEach(function (id) { $(id).addEventListener('change', function () { if ($('s-fran').value && $('s-till').value) laddaStatistik(); }); });
+  })();
+
+  /* ---------- händelser ---------- */
+  document.querySelectorAll('.chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      filter = c.dataset.f;
+      document.querySelectorAll('.chip').forEach(function (x) { x.setAttribute('aria-pressed', String(x === c)); });
+      ritaPass();
+    });
+  });
+  $('login').addEventListener('submit', function (e) {
+    e.preventDefault();
+    hamta('login', {losen: $('losen').value}).then(function () { $('losen').value = ''; return ladda(); })
+      .catch(function (e) { meddela(e.message, true); });
+  });
+  $('logout').addEventListener('click', function () { hamta('logout', {}).then(function () { location.reload(); }); });
+  $('ny').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var namn = $('ny-namn').value.trim(); if (!namn) { $('ny-namn').focus(); return; }
+    gor('ny_instruktor', {namn: namn, epost: $('ny-epost').value.trim()}, namn + ' är tillagd. Kopiera länken och skicka till hen.')
+      .then(function () { $('ny-namn').value = ''; $('ny-epost').value = ''; });
+  });
+
+  visaFlik(location.hash.slice(1));
+  ladda();
+})();
+</script>
+</body>
+</html>

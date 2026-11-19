@@ -1,0 +1,4 @@
+# Bara index.php och paminnelse.php får anropas utifrån.
+<FilesMatch "^(lib|config.*)\.php$">
+  Require all denied
+</FilesMatch>

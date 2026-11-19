@@ -199,10 +199,31 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .sched{padding:48px 0 64px}
 .sched h2{font-size:clamp(34px,9vw,60px)}
 .flag{display:inline-block;margin-top:14px;padding:6px 12px;background:var(--yellow);color:#101014;font-family:var(--pixel);font-size:14px}
-.tabs{display:flex;gap:8px;margin-top:22px}
-.tabs button{flex:1 1 0;min-height:52px;font:700 17px var(--body);color:var(--ink);background:var(--card);border:2px solid var(--ink);cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--ink);color:var(--ground)}
-.day{margin-top:14px;border:2px solid var(--ink);background:var(--card)}
+.weeknav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px}
+.weeknav b{font-size:17px;text-align:center}
+.weeknav button{flex:0 0 52px;min-height:52px;font:700 22px var(--body);color:var(--ink);background:var(--card);border:2px solid var(--ink);cursor:pointer}
+.weeknav button:disabled{opacity:.3;cursor:default}
+.weekgrid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:22px}
+.weeknav+.weekgrid{margin-top:14px}
+.sess .leader{margin-top:6px;font-size:15px;color:var(--muted)}
+.sess.off span:first-child,.sess.off time{text-decoration:line-through;color:var(--muted)}
+.sess.off .leader{color:var(--ink);font-weight:700}
+/* On larger screens all training days share one row; the script sets --dagar to the number of days. */
+@media (min-width:760px){
+  .weekgrid{grid-template-columns:repeat(var(--dagar,3),minmax(0,1fr))}
+  .weekgrid .sess{flex-direction:column;gap:2px}
+  .weekgrid .sess time{flex:none;overflow-wrap:normal}
+  .weekgrid .day{min-width:0}
+  /* five days or more: tighter so they still fit side by side; on narrow screens the row scrolls sideways instead of breaking words */
+  .weekgrid.many{gap:8px;grid-template-columns:repeat(var(--dagar,3),minmax(124px,1fr));overflow-x:auto;padding-bottom:4px}
+  .weekgrid.many .day h3{padding:10px;font-size:15px}
+  .weekgrid.many .sess{padding:12px 10px;font-size:15px}
+  .weekgrid.many .sess time{font-size:15px}
+  .weekgrid.many .sess .leader{font-size:13px}
+  .weekgrid.many .tag{font-size:11px;padding:1px 6px}
+}
+.day{border:2px solid var(--ink);background:var(--card)}
+.day h3{margin:0;padding:12px 18px;background:var(--ink);color:var(--ground);font:700 18px var(--body)}
 .sess{display:flex;gap:16px;align-items:flex-start;padding:16px 18px;border-top:1px solid var(--line)}
 .sess:first-child{border-top:0}
 .sess time{flex:0 0 108px;font-weight:700;font-size:18px}
@@ -210,6 +231,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .tag{align-self:flex-start;margin-top:4px;padding:1px 9px;font-family:var(--pixel);font-size:13px;border:2px solid var(--ink)}
 .tag.barn{background:var(--yellow);color:#101014;border-color:#101014}
 .tag.vuxna{background:var(--ink);color:var(--ground)}
+.tag.ungdom{background:var(--purple);color:#fff;border-color:var(--purple)}
 .sched .note{margin-top:16px;color:var(--muted);max-width:36em}
 
 /* ---------- place ---------- */
@@ -239,6 +261,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .book dt{font-size:14px;color:var(--muted)}
 .book dd{margin:2px 0 0;font-weight:700}
 footer{padding:22px;text-align:center;font-size:14px;color:var(--muted)}
+footer .admin-link{display:inline-block;margin-top:10px;padding:8px 6px;color:var(--muted)}
 
 @media (prefers-reduced-motion: reduce){
   .blink{animation:none}

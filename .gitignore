@@ -1,1 +1,10 @@
 .DS_Store
+__pycache__/
+
+# Lösenord och inställningar för servern
+api/config.local.php
+verktyg/provserver-losen.txt
+
+# Databas och sparade testmejl
+data/*
+!data/.htaccess

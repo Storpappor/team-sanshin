@@ -30,7 +30,7 @@ Inget byggsteg behövs, men sidan ska öppnas via en lokal webbserver (inte som 
 2. Årtalsscen (`.s3`): 1969, 2011 och 2027 zoomar in en i taget medan avsnittet ligger fast.
 3. Japansk disciplin (`.disc`): fyra meningar som tänds när de scrollas in.
 4. Tre grupper (`.s2`): barn, tonåring, vuxen. Raderna tänds en i taget medan avsnittet ligger fast.
-5. Schema: flikar per dag.
+5. Schema: hela veckan på en gång, dagarna under varandra i telefonen och bredvid varandra på dator. Med servern går det att bläddra vecka för vecka (högst 12 veckor fram), och varje pass visar instruktören eller "Inställt". Utan server (GitHub Pages) visas bara veckomönstret från `schema.js`.
 6. Så går det till: tre steg och pris.
 7. Foton från lokalen och föräldracitat.
 8. Anmälningsformulär (`#boka`).
@@ -42,7 +42,7 @@ Fast längst ner: anmälningsknapp (döljs när första vyns knapp eller formul�
 
 - **Formuläret skickar ingenting.** Det visar bara en bekräftelse. Behöver kopplas till e-post eller medlemssystem.
 - **Spelet körs i rutan** i en iframe som skapas när rutan öppnas och tas bort när den stängs (spelet stannar då). Adressen är https://storpappor.github.io/tamas-mobile-preview/combined/ och ligger i `GAME_URL` i `skript.js`. Länken "Öppna spelet i en ny flik" finns kvar som reserv. Rutans höjd räknas ut från bredden plus plats för spelets styrknappar på pekskärmar; ändras spelets layout kan siffrorna i `frameHeight()` behöva justeras.
-- **Schemat är ett exempel.** Datan ligger i variabeln `week` i skriptet längst ner.
+- **Schemat** är klubbens riktiga och ligger i `schema.js`, som är lätt att ändra för hand. Samma schema finns i servern (`api/lib.php` och `verktyg/provserver.py`).
 - **Text inom hakparentes** är platshållare: priser, foton, föräldracitat.
 - **Bilden i spelknappen** (och i spelrutan medan spelet laddar) är `bilder/spel-tamas.jpg`: spelets eget porträtt av Tamas med TAMAS-loggan, sammansatt ur spelets titelskärm. `pixel-dojo.jpg` (affischillustrationen) används inte längre på sidan.
 - **Åldersfältet** tar 7–17 år; övre gränsen är en gissning.
@@ -56,6 +56,19 @@ Fast längst ner: anmälningsknapp (döljs när första vyns knapp eller formul�
 - Scrolleffekterna: skriptet läser scrollpositionen och sätter klasser (`on`, `post`, `go`). Själva rörelserna är CSS-övergångar på `transform` och `opacity`. En tidigare version som skalade siffran direkt efter scrollpositionen hackade på iPhone.
 - `prefers-reduced-motion` stänger av fastlåsning och animationer och visar allt som en vanlig sida.
 - Hänsyn till iPhone-kanter med `env(safe-area-inset-*)`.
+
+## Server: anmälningar, instruktörer och mejl (under arbete)
+
+Byggs för ett webbhotell med PHP, tänkt Loopia. Ännu inte testat hos Loopia.
+
+- `api/` – serverns PHP-kod. `index.php` tar emot anrop från sidorna, `paminnelse.php` körs en gång om dagen och mejlar instruktörerna om pass utan instruktör (de svarar på mejlet, och admin sätter upp dem). Inställningar i `api/config.local.php` (mall: `config.example.php`, laddas aldrig upp).
+- `data/` – databasen och sparade testmejl. Laddas aldrig upp och kan inte nås från webben.
+- `admin/` – kräver lösenord. Tre flikar: Anmälningar, Pass (sätta instruktörer, ställa in pass med orsak, och under "Veckoschema" lägga till, ändra och ta bort återkommande pass och enstaka extrapass) och Instruktörer (lägga till, ändra och ta bort, samt körda pass per månad över valfri period med Excel-export). Pass som tas bort avslutas i stället om de redan har körts, så att historiken finns kvar.
+- `intern/` – gemensamt utseende och skript för de två sidorna ovan.
+- `verktyg/provserver.py` – låtsasserver för att prova allt på egen dator utan PHP: `python verktyg/provserver.py`, öppna http://localhost:8080. Mejlen hamnar som filer i `data/mejl/`. Lösenordet till adminsidan finns i `verktyg/provserver-losen.txt`.
+- `skiss/instruktorer.html` – den första klickbara skissen.
+
+Formuläret på sajten skickar till servern, utom på GitHub Pages där det fortfarande är en demo.
 
 ## Ankare för QR-koder
 
