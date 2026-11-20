@@ -254,7 +254,7 @@ function las_mall(array $in): array {
         if (($fran && !$datum($fran)) || ($till && !$datum($till))) svara(['fel' => 'Datumet ser inte rätt ut.'], 400);
         if ($fran && $till && $till <= $fran) svara(['fel' => 'Slutdatumet måste vara efter startdatumet.'], 400);
     }
-    return ['veckodag' => $veckodag, 'tid' => "$start–$slut", 'grupp' => $grupp, 'kategori' => $kategori, 'fran' => $fran, 'till' => $till];
+    return ['veckodag' => $veckodag, 'tid' => $start . '–' . $slut, 'grupp' => $grupp, 'kategori' => $kategori, 'fran' => $fran, 'till' => $till];
 }
 
 function vem_text(string $vem): string {

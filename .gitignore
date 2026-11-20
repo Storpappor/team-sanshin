@@ -8,3 +8,4 @@ verktyg/provserver-losen.txt
 # Databas och sparade testmejl
 data/*
 !data/.htaccess
+verktyg/testserver-losen.txt
