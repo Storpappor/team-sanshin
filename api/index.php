@@ -32,7 +32,15 @@ try {
             ]);
 
         case 'POST anmalan':
-            svara(ta_emot_anmalan($in));
+            // Föräldern får svar direkt; mejlen skickas efteråt så att formuläret inte behöver vänta.
+            $mejl = ta_emot_anmalan($in);
+            svara_och_fortsatt(['ok' => true]);
+            try {
+                foreach ($mejl as [$till, $amne, $text]) skicka_mejl($till, $amne, $text);
+            } catch (Throwable $e) {
+                error_log('Mejl efter anmälan: ' . $e); // svaret är redan skickat
+            }
+            exit;
 
         // ----- admin, med lösenord -----
         case 'POST login':
@@ -266,9 +274,10 @@ function skydda_excel(string $s): string {
     return preg_match('/^[=+\-@]/', $s) ? "'" . $s : $s;
 }
 
+// Sparar anmälan och returnerar mejlen som ska skickas: [[till, ämne, text], ...].
 function ta_emot_anmalan(array $in): array {
     // Skydd mot skräp: ett dolt fält som bara datorprogram fyller i, och för snabbt ifyllt formulär.
-    if (trim((string)($in['webbplats'] ?? '')) !== '' || (int)($in['tid'] ?? 0) < 3000) return ['ok' => true];
+    if (trim((string)($in['webbplats'] ?? '')) !== '' || (int)($in['tid'] ?? 0) < 3000) return [];
 
     $arende = (string)($in['arende'] ?? '');
     $vem = array_values(array_intersect(array_keys(VEM), (array)($in['vem'] ?? [])));
@@ -295,16 +304,38 @@ function ta_emot_anmalan(array $in): array {
         . ($mobil !== '' ? "Mobil: $mobil\n" : '');
 
     $k = konfig();
-    skicka_mejl($k['mejl']['klubben'], 'Ny anmälan: ' . ARENDEN[$arende] . ' – ' . $namn,
-        "En ny anmälan har kommit in via sajten.\n\n$sammanfattning\nAlla anmälningar finns på adminsidan:\n"
-        . rtrim($k['sajt_url'], '/') . "/admin/\n");
+    return [
+        [$k['mejl']['klubben'], 'Ny anmälan: ' . ARENDEN[$arende] . ' – ' . $namn,
+            "En ny anmälan har kommit in via sajten.\n\n$sammanfattning\nAlla anmälningar finns på adminsidan:\n"
+            . rtrim($k['sajt_url'], '/') . "/admin/\n"],
+        // UTKAST: texten till föräldern ska godkännas av klubben.
+        [$epost, 'Vi har fått din anmälan – Team Sanshin',
+            "Hej $namn!\n\nTack för din anmälan till Team Sanshin. Vi har tagit emot den och hör av oss.\n\n"
+            . "Det här skickade du:\n$sammanfattning\n"
+            . "Vill du ändra något eller att vi tar bort dina uppgifter? Svara på det här mejlet.\n\n"
+            . "Team Sanshin\nBjörngårdsgatan 15, 118 52 Stockholm\n"],
+    ];
+}
 
-    // UTKAST: texten till föräldern ska godkännas av klubben.
-    skicka_mejl($epost, 'Vi har fått din anmälan – Team Sanshin',
-        "Hej $namn!\n\nTack för din anmälan till Team Sanshin. Vi har tagit emot den och hör av oss.\n\n"
-        . "Det här skickade du:\n$sammanfattning\n"
-        . "Vill du ändra något eller att vi tar bort dina uppgifter? Svara på det här mejlet.\n\n"
-        . "Team Sanshin\nBjörngårdsgatan 15, 118 52 Stockholm\n");
-
-    return ['ok' => true];
+// Skickar svaret till webbläsaren direkt och låter skriptet fortsätta (till exempel med mejl) efteråt.
+function svara_och_fortsatt(array $data): void {
+    ignore_user_abort(true);
+    set_time_limit(120);
+    $kropp = json_encode($data, JSON_UNESCAPED_UNICODE);
+    http_response_code(200);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    if (function_exists('fastcgi_finish_request')) { // PHP-FPM
+        echo $kropp;
+        fastcgi_finish_request();
+        return;
+    }
+    // Apache med mod_php: avsluta svaret med känd längd och utan komprimering, och töm bufferten.
+    if (function_exists('apache_setenv')) @apache_setenv('no-gzip', '1');
+    while (ob_get_level() > 0) ob_end_clean();
+    header('Content-Encoding: identity');
+    header('Content-Length: ' . strlen($kropp));
+    header('Connection: close');
+    echo $kropp;
+    flush();
 }
