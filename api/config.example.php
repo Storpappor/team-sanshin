@@ -19,7 +19,7 @@ return [
         'satt'      => 'fil',
         'mapp'      => __DIR__ . '/../data/mejl',
         'host'      => 'mailcluster.loopia.se',
-        'port'      => 465,
+        'port'      => 587, // som i Loopias PHP-exempel (STARTTLS). 465 fungerar också.
         'anv'       => 'info@teamsanshin.se',
         'losen'     => '',
         'fran'      => 'info@teamsanshin.se',

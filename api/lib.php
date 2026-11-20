@@ -199,8 +199,10 @@ function skicka_mejl(string $till, string $amne, string $text): bool {
 }
 
 // Skickar via SMTP med kryptering och inloggning, som Loopia rekommenderar.
+// Port 587: vanlig anslutning som krypteras med STARTTLS (Loopias PHP-exempel). Port 465: krypterad från start.
 function smtp_skicka(array $m, string $till, string $meddelande): bool {
-    $s = @stream_socket_client('ssl://' . $m['host'] . ':' . $m['port'], $nr, $fel, 15);
+    $direktKrypterad = (int)$m['port'] === 465;
+    $s = @stream_socket_client(($direktKrypterad ? 'ssl://' : 'tcp://') . $m['host'] . ':' . $m['port'], $nr, $fel, 15);
     if (!$s) { error_log("SMTP: kunde inte ansluta: $fel"); return false; }
     stream_set_timeout($s, 15);
     $las = function () use ($s): string {
@@ -220,6 +222,13 @@ function smtp_skicka(array $m, string $till, string $meddelande): bool {
         $doman = substr((string)strrchr($m['fran'], '@'), 1);
         $steg(null, '220');
         $steg('EHLO ' . $doman, '250');
+        if (!$direktKrypterad) {
+            $steg('STARTTLS', '220');
+            if (!stream_socket_enable_crypto($s, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT)) {
+                throw new RuntimeException('kunde inte starta kryptering (STARTTLS)');
+            }
+            $steg('EHLO ' . $doman, '250');
+        }
         $steg('AUTH LOGIN', '334');
         $steg(base64_encode($m['anv']), '334');
         $steg(base64_encode($m['losen']), '235');
