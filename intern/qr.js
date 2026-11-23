@@ -208,9 +208,9 @@ var QR = (function () {
     '<path stroke="#101014" stroke-width="5" d="M30 56 L47 58 M44 58 L41 68"/>' +
     '</g><circle cx="41" cy="22" r="9" fill="#5B2BD6"/>';
 
-  // Stiliserat emblem: lagerkrans med de tre tecknen 糸東流 lodrätt i mitten, i en färg. Ritad i en ruta på 100 x 100.
+  // Stiliserat emblem: lagerkrans med de tre tecknen 糸東流 lodrätt i mitten, i svart. Ritad i en ruta på 100 x 100.
   var EMBLEM = (function () {
-    var F = '#5B2BD6', cx = 50, cy = 50, R = 36, delar = [];
+    var F = '#000', cx = 50, cy = 50, R = 36, delar = [];
     function punkt(t) { var r = t * Math.PI / 180; return [cx + R * Math.cos(r), cy + R * Math.sin(r)]; }
     function gren(fran, till, steg) {
       // stjälken som en båge, bladen parvis längs den
@@ -247,7 +247,7 @@ var QR = (function () {
     if (r) {
       var lx = r.x0 + marginal, ly = r.y0 + marginal, inre = r.n - 1;
       if (val.logga === 'emblem') {
-        logga = '<rect x="' + (lx + 0.15) + '" y="' + (ly + 0.15) + '" width="' + (r.n - 0.3) + '" height="' + (r.n - 0.3) + '" rx="1.2" fill="#fff" stroke="#5B2BD6" stroke-width="0.3"/>' +
+        logga = '<rect x="' + (lx + 0.15) + '" y="' + (ly + 0.15) + '" width="' + (r.n - 0.3) + '" height="' + (r.n - 0.3) + '" rx="1.2" fill="#fff" stroke="#000" stroke-width="0.3"/>' +
           '<g transform="translate(' + (lx + 0.5) + ' ' + (ly + 0.5) + ') scale(' + (inre / 100) + ')">' + EMBLEM + '</g>';
       } else if (typeof val.logga === 'string') {
         // En egen bild, till exempel klubbens emblem (som data-adress, så att filen blir fristående).
