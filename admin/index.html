@@ -34,7 +34,7 @@
       <button type="button" role="tab" id="f-anmalningar" aria-controls="v-anmalningar">Anmälningar <span class="badge" id="b-anmalningar"></span></button>
       <button type="button" role="tab" id="f-pass" aria-controls="v-pass">Pass <span class="badge" id="b-pass"></span></button>
       <button type="button" role="tab" id="f-instruktorer" aria-controls="v-instruktorer">Instruktörer</button>
-      <button type="button" role="tab" id="f-overgangar" aria-controls="v-overgangar">Övergångar <span class="badge" id="b-overgangar"></span></button>
+      <button type="button" role="tab" id="f-overgangar" aria-controls="v-overgangar">Registreringar <span class="badge" id="b-overgangar"></span></button>
     </nav>
 
     <section class="sec" id="v-anmalningar" role="tabpanel" aria-labelledby="f-anmalningar">
@@ -44,14 +44,14 @@
     </section>
 
     <section class="sec" id="v-overgangar" role="tabpanel" aria-labelledby="f-overgangar" hidden>
-      <p class="muted">Nuvarande medlemmar som går över från den gamla klubben. Personnumret visas bara som födelsedatum här; hela finns i Excel-filen. Ta bort uppgifterna när övergången är klar.</p>
+      <p class="muted">Registreringar för vårterminen 2027 från nuvarande medlemmar. Personnumret visas bara som födelsedatum här; hela finns i Excel-filen. Ta bort uppgifterna när registreringen är klar.</p>
       <div class="list" id="overgangar"></div>
       <div class="form"><a class="btn primary" href="../api/index.php?do=excel_overgang" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner till Excel</a>
-        <a class="btn" href="../overgang/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none">Öppna övergångssidan</a></div>
+        <a class="btn" href="../overgang/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none">Öppna registreringssidan</a></div>
 
-      <h3 class="veckorubrik">QR-kod till övergångssidan</h3>
-      <p class="muted hjalp">Skanna med mobilen för att komma till övergångssidan. Koden skapas för den adress sajten har just nu: <b id="qr-adress"></b></p>
-      <div class="qrbox"><div id="qr" role="img" aria-label="QR-kod till övergångssidan"></div></div>
+      <h3 class="veckorubrik">QR-kod till registreringssidan</h3>
+      <p class="muted hjalp">Skanna med mobilen för att komma till registreringssidan. Koden skapas för den adress sajten har just nu: <b id="qr-adress"></b></p>
+      <div class="qrbox"><div id="qr" role="img" aria-label="QR-kod till registreringssidan"></div></div>
       <div class="form">
         <a class="btn primary" id="qr-png" download="qr-overgang.png" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner som bild (PNG)</a>
         <a class="btn" id="qr-svg" download="qr-overgang.svg" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner för tryck (SVG)</a>
@@ -128,7 +128,7 @@
 <script src="../intern/gemensamt.js"></script>
 <script src="../intern/qr.js"></script>
 <script>
-// QR-kod till övergångssidan för den adress sajten har just nu.
+// QR-kod till registreringssidan för den adress sajten har just nu.
 (function () {
   // Högsta felrättningen (H), så att emblemet i mitten inte gör koden oläslig.
   var adress = location.origin + '/overgang/', qr = QR.skapa(adress, 'H');
@@ -208,14 +208,14 @@
   function ritaOvergangar() {
     var box = $('overgangar'); box.innerHTML = '';
     var lista = data.overgangar || [];
-    if (!lista.length) box.appendChild(el('div', 'li m', 'Inga övergångar än.'));
+    if (!lista.length) box.appendChild(el('div', 'li m', 'Inga registreringar än.'));
     lista.forEach(function (o) {
-      box.appendChild(rad(o.namn + ' · ' + o.grupp,
-        o.personnummer + ' (' + o.alder + ' år)' + (o.malsman ? ' · målsman ' + o.malsman : '') + ' · ' + o.epost + (o.mobil ? ' · ' + o.mobil : '') + ' · ' + o.skapad.slice(0, 16),
+      box.appendChild(rad(o.namn + (o.grupp ? ' · ' + o.grupp : ''),
+        o.personnummer + ' (' + o.alder + ' år)' + (o.malsman ? ' · målsman ' + o.malsman : '') + ' · ' + o.epost + (o.epost_fler ? ', ' + o.epost_fler : '') + (o.mobil ? ' · ' + o.mobil : '') + ' · ' + o.skapad.slice(0, 16),
         [knapp(o.klar ? 'Ångra' : 'Klar', function () { return gor('overgang_klar', {id: o.id, klar: !o.klar}); }),
          knapp('Ta bort', function () {
-           if (!confirm('Ta bort övergången för ' + o.namn + ', med personnummer? Det går inte att ångra.')) return;
-           return gor('ta_bort_overgang', {id: o.id}, 'Övergången är borttagen');
+           if (!confirm('Ta bort registreringen för ' + o.namn + ', med personnummer? Det går inte att ångra.')) return;
+           return gor('ta_bort_overgang', {id: o.id}, 'Registreringen är borttagen');
          })], o.klar ? 'done' : null));
     });
   }

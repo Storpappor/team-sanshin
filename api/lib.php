@@ -49,12 +49,20 @@ function db(): PDO {
 
 // Tabeller som har tillkommit efter att databasen skapades första gången.
 function uppgradera_tabeller(PDO $pdo): void {
-    try { $pdo->query('SELECT 1 FROM overgang LIMIT 1'); return; } catch (PDOException $e) { /* finns inte än */ }
-    $mysql = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
-    $id = $mysql ? 'INT AUTO_INCREMENT PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
-    $slut = $mysql ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : '';
-    // Nuvarande medlemmar som går över från den gamla klubben.
-    $pdo->exec("CREATE TABLE overgang (id $id, skapad VARCHAR(19) NOT NULL, namn VARCHAR(100) NOT NULL, personnummer VARCHAR(12) NOT NULL, grupp VARCHAR(100) NOT NULL, malsman VARCHAR(100), epost VARCHAR(200) NOT NULL, mobil VARCHAR(40), klar INT NOT NULL DEFAULT 0)$slut");
+    $finns = function (string $sql) use ($pdo): bool {
+        try { $pdo->query($sql); return true; } catch (PDOException $e) { return false; }
+    };
+    if (!$finns('SELECT 1 FROM overgang LIMIT 1')) {
+        $mysql = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+        $id = $mysql ? 'INT AUTO_INCREMENT PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+        $slut = $mysql ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : '';
+        // Nuvarande medlemmar som registrerar sig i Team Sanshin (tabellen heter overgang sedan första versionen).
+        $pdo->exec("CREATE TABLE overgang (id $id, skapad VARCHAR(19) NOT NULL, namn VARCHAR(100) NOT NULL, personnummer VARCHAR(12) NOT NULL, grupp VARCHAR(100) NOT NULL, malsman VARCHAR(100), epost VARCHAR(200) NOT NULL, mobil VARCHAR(40), klar INT NOT NULL DEFAULT 0)$slut");
+    }
+    // Fler e-postadresser till kontaktlistan, kommaseparerade.
+    if (!$finns('SELECT epost_fler FROM overgang LIMIT 1')) {
+        $pdo->exec('ALTER TABLE overgang ADD COLUMN epost_fler VARCHAR(900)');
+    }
 }
 
 // ---------- personnummer ----------
