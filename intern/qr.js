@@ -208,7 +208,33 @@ var QR = (function () {
     '<path stroke="#101014" stroke-width="5" d="M30 56 L47 58 M44 58 L41 68"/>' +
     '</g><circle cx="41" cy="22" r="9" fill="#5B2BD6"/>';
 
-  // SVG med vit marginal på fyra moduler, som standarden kräver. Med {logga: true} läggs siluetten i mitten.
+  // Stiliserat emblem: lagerkrans med de tre tecknen 糸東流 lodrätt i mitten, i en färg. Ritad i en ruta på 100 x 100.
+  var EMBLEM = (function () {
+    var F = '#5B2BD6', cx = 50, cy = 50, R = 36, delar = [];
+    function punkt(t) { var r = t * Math.PI / 180; return [cx + R * Math.cos(r), cy + R * Math.sin(r)]; }
+    function gren(fran, till, steg) {
+      // stjälken som en båge, bladen parvis längs den
+      var a = punkt(fran), b = punkt(till), stor = Math.abs(till - fran) > 180 ? 1 : 0, sv = till < fran ? 0 : 1;
+      delar.push('<path d="M' + a[0].toFixed(1) + ' ' + a[1].toFixed(1) + ' A' + R + ' ' + R + ' 0 ' + stor + ' ' + sv + ' ' + b[0].toFixed(1) + ' ' + b[1].toFixed(1) + '" fill="none" stroke="' + F + '" stroke-width="2.6" stroke-linecap="round"/>');
+      for (var t = fran + steg; (steg > 0 ? t <= till : t >= till); t += steg) {
+        var p = punkt(t), tangent = t + (steg > 0 ? 90 : -90);
+        [-38, 38].forEach(function (vinkel) {
+          var v = tangent + vinkel, r = v * Math.PI / 180, m = [p[0] + 5 * Math.cos(r), p[1] + 5 * Math.sin(r)];
+          delar.push('<ellipse cx="' + m[0].toFixed(1) + '" cy="' + m[1].toFixed(1) + '" rx="6.2" ry="2.5" transform="rotate(' + v.toFixed(0) + ' ' + m[0].toFixed(1) + ' ' + m[1].toFixed(1) + ')" fill="' + F + '"/>');
+        });
+      }
+    }
+    gren(100, 232, 22);  // vänster gren, nerifrån och upp
+    gren(80, -52, -22);  // höger gren
+    delar.push('<path d="M44 90 Q50 84 56 90 M50 86 L46 96 M50 86 L54 96" fill="none" stroke="' + F + '" stroke-width="2.4" stroke-linecap="round"/>');
+    ['糸', '東', '流'].forEach(function (tecken, i) {
+      delar.push('<text x="50" y="' + (34 + i * 19) + '" font-size="17" font-weight="700" text-anchor="middle" fill="' + F + '" font-family="\'Yu Mincho\',\'MS Mincho\',\'Hiragino Mincho ProN\',\'Noto Serif CJK JP\',\'Noto Sans CJK JP\',serif">' + tecken + '</text>');
+    });
+    return delar.join('');
+  })();
+
+  // SVG med vit marginal på fyra moduler, som standarden kräver.
+  // Logga: true (siluett), 'emblem' (stiliserat klubbemblem) eller en bildadress.
   function svg(qr, val) {
     val = val || {};
     var marginal = val.marginal == null ? 4 : val.marginal;
@@ -220,7 +246,10 @@ var QR = (function () {
     var logga = '';
     if (r) {
       var lx = r.x0 + marginal, ly = r.y0 + marginal, inre = r.n - 1;
-      if (typeof val.logga === 'string') {
+      if (val.logga === 'emblem') {
+        logga = '<rect x="' + (lx + 0.15) + '" y="' + (ly + 0.15) + '" width="' + (r.n - 0.3) + '" height="' + (r.n - 0.3) + '" rx="1.2" fill="#fff" stroke="#5B2BD6" stroke-width="0.3"/>' +
+          '<g transform="translate(' + (lx + 0.5) + ' ' + (ly + 0.5) + ') scale(' + (inre / 100) + ')">' + EMBLEM + '</g>';
+      } else if (typeof val.logga === 'string') {
         // En egen bild, till exempel klubbens emblem (som data-adress, så att filen blir fristående).
         logga = '<rect x="' + lx + '" y="' + ly + '" width="' + r.n + '" height="' + r.n + '" fill="#fff"/>' +
           '<image x="' + (lx + 0.4) + '" y="' + (ly + 0.4) + '" width="' + (r.n - 0.8) + '" height="' + (r.n - 0.8) + '" preserveAspectRatio="xMidYMid meet" href="' + val.logga + '"/>';
