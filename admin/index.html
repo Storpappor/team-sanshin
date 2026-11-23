@@ -130,11 +130,12 @@
 <script>
 // QR-kod till övergångssidan för den adress sajten har just nu.
 (function () {
-  var adress = location.origin + '/overgang/', qr = QR.skapa(adress), svg = QR.svg(qr);
+  // Högsta felrättningen (H), så att karatesiluetten i mitten inte gör koden oläslig.
+  var adress = location.origin + '/overgang/', qr = QR.skapa(adress, 'H'), val = {logga: true}, svg = QR.svg(qr, val);
   document.getElementById('qr-adress').textContent = adress;
   document.getElementById('qr').innerHTML = svg;
   document.getElementById('qr-svg').href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  document.getElementById('qr-png').href = QR.png(qr, 24);
+  QR.png(qr, {logga: true, pixlarPerModul: 24}, function (url) { document.getElementById('qr-png').href = url; });
 })();
 </script>
 <script>

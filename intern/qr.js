@@ -1,9 +1,15 @@
 /* QR-koder utan utomstående tjänster.
-   Byte-läge, felkorrigering M (cirka 15 %), version 1–6, alltså upp till cirka 100 tecken. Räcker gott för webbadresser.
-   Följer standarden ISO/IEC 18004. Användning: var qr = QR.skapa('https://...'); qr.storlek, qr.svart(x, y), QR.svg(qr). */
+   Byte-läge, version 1–6, felkorrigering M (cirka 15 %), Q (25 %) eller H (30 %).
+   Med H räcker det till cirka 58 tecken och tål en logga i mitten.
+   Följer standarden ISO/IEC 18004. Användning: var qr = QR.skapa('https://...', 'H'); QR.svg(qr, {logga: true}). */
 var QR = (function () {
-  // Per version (1–6), nivå M: [felkorrigeringsord per block, antal block, dataord per block]
-  var BLOCK = [null, [10, 1, 16], [16, 1, 28], [26, 1, 44], [18, 2, 32], [24, 2, 43], [16, 4, 27]];
+  // Per nivå och version: [felkorrigeringsord per block, [[antal block, dataord per block], ...]]
+  var BLOCK = {
+    M: [null, [10, [[1, 16]]], [16, [[1, 28]]], [26, [[1, 44]]], [18, [[2, 32]]], [24, [[2, 43]]], [16, [[4, 27]]]],
+    Q: [null, [13, [[1, 13]]], [22, [[1, 22]]], [18, [[2, 17]]], [26, [[2, 24]]], [18, [[2, 15], [2, 16]]], [24, [[4, 19]]]],
+    H: [null, [17, [[1, 9]]], [28, [[1, 16]]], [22, [[2, 13]]], [16, [[4, 9]]], [22, [[2, 11], [2, 12]]], [28, [[4, 15]]]]
+  };
+  var FORMATBITAR = {M: 0, Q: 3, H: 2};
   var JUSTERING = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34]];
 
   // ----- Reed-Solomon i GF(256) med polynomet 0x11D -----
@@ -45,14 +51,18 @@ var QR = (function () {
     return b;
   }
 
-  function skapa(text) {
+  function antalDataord(b) { return b[1].reduce(function (s, g) { return s + g[0] * g[1]; }, 0); }
+
+  function skapa(text, niva) {
+    niva = niva || 'M';
+    if (!BLOCK[niva]) throw new Error('Okänd nivå: ' + niva);
     var bytes = utf8(text), v, b;
     for (v = 1; v <= 6; v++) {
-      b = BLOCK[v];
-      if (4 + 8 + bytes.length * 8 <= b[1] * b[2] * 8) break;
+      b = BLOCK[niva][v];
+      if (4 + 8 + bytes.length * 8 <= antalDataord(b) * 8) break;
     }
     if (v > 6) throw new Error('För lång text för QR-koden.');
-    var dataOrd = b[1] * b[2], storlek = 17 + 4 * v;
+    var dataOrd = antalDataord(b), storlek = 17 + 4 * v;
 
     // ----- bitar: läge (byte), längd, data, slut och utfyllnad -----
     var bitar = [];
@@ -68,13 +78,15 @@ var QR = (function () {
     }
 
     // ----- dela i block, lägg till felkorrigering och fläta ihop -----
-    var del = delare(b[0]), block = [], fk = [];
-    for (i = 0; i < b[1]; i++) {
-      var d = ord.slice(i * b[2], (i + 1) * b[2]);
-      block.push(d); fk.push(rest(d, del));
-    }
+    var del = delare(b[0]), block = [], fk = [], start = 0, langst = 0;
+    b[1].forEach(function (g) {
+      for (var k = 0; k < g[0]; k++) {
+        var d = ord.slice(start, start + g[1]); start += g[1];
+        block.push(d); fk.push(rest(d, del)); langst = Math.max(langst, g[1]);
+      }
+    });
     var alla = [];
-    for (i = 0; i < b[2]; i++) block.forEach(function (d) { alla.push(d[i]); });
+    for (i = 0; i < langst; i++) block.forEach(function (d) { if (i < d.length) alla.push(d[i]); });
     for (i = 0; i < b[0]; i++) fk.forEach(function (e) { alla.push(e[i]); });
 
     // ----- matris -----
@@ -97,7 +109,7 @@ var QR = (function () {
       });
     });
     function format(mask) {
-      var data = (0 << 3) | mask, r = data; // nivå M har formatbitarna 00
+      var data = (FORMATBITAR[niva] << 3) | mask, r = data;
       for (var k = 0; k < 10; k++) r = (r << 1) ^ ((r >>> 9) * 0x537);
       var f = ((data << 10) | r) ^ 0x5412, bit = function (n) { return ((f >>> n) & 1) !== 0; };
       for (k = 0; k <= 5; k++) satt(8, k, bit(k));
@@ -178,30 +190,58 @@ var QR = (function () {
     }
     anvand(basta); format(basta);
 
-    return { storlek: storlek, version: v, mask: basta, svart: function (x, y) { return m[y][x]; } };
+    return { storlek: storlek, version: v, niva: niva, mask: basta, svart: function (x, y) { return m[y][x]; } };
   }
 
-  // SVG med vit marginal på fyra moduler, som standarden kräver.
-  function svg(qr, marginal) {
-    marginal = marginal == null ? 4 : marginal;
-    var s = qr.storlek + marginal * 2, d = [];
+  // Rutan i mitten där loggan ligger, i moduler. Ungefär en femtedel av bredden, alltid ett udda antal.
+  function loggaRuta(qr) {
+    var n = Math.round(qr.storlek * 0.22);
+    if (n % 2 === 0) n++;
+    var x0 = (qr.storlek - n) / 2;
+    return {x0: x0, y0: x0, n: n};
+  }
+
+  // Karatesiluett (framåtslag i framåtställning), ritad i en ruta på 100 x 100.
+  var SILUETT =
+    '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path stroke="#5B2BD6" stroke-width="10" d="M40 36 L38 58 M41 38 L80 38 M41 38 L27 47 L35 55 M38 58 L60 70 L67 88 M38 58 L16 88"/>' +
+    '<path stroke="#101014" stroke-width="5" d="M30 56 L47 58 M44 58 L41 68"/>' +
+    '</g><circle cx="41" cy="22" r="9" fill="#5B2BD6"/>';
+
+  // SVG med vit marginal på fyra moduler, som standarden kräver. Med {logga: true} läggs siluetten i mitten.
+  function svg(qr, val) {
+    val = val || {};
+    var marginal = val.marginal == null ? 4 : val.marginal;
+    var s = qr.storlek + marginal * 2, d = [], r = val.logga ? loggaRuta(qr) : null;
+    function iRutan(x, y) { return r && x >= r.x0 && x < r.x0 + r.n && y >= r.y0 && y < r.y0 + r.n; }
     for (var y = 0; y < qr.storlek; y++) for (var x = 0; x < qr.storlek; x++) {
-      if (qr.svart(x, y)) d.push('M' + (x + marginal) + ' ' + (y + marginal) + 'h1v1h-1z');
+      if (qr.svart(x, y) && !iRutan(x, y)) d.push('M' + (x + marginal) + ' ' + (y + marginal) + 'h1v1h-1z');
     }
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + s + ' ' + s + '" shape-rendering="crispEdges">' +
-      '<rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="' + d.join('') + '"/></svg>';
+    var logga = '';
+    if (r) {
+      var lx = r.x0 + marginal, ly = r.y0 + marginal, inre = r.n - 1;
+      logga = '<rect x="' + (lx + 0.15) + '" y="' + (ly + 0.15) + '" width="' + (r.n - 0.3) + '" height="' + (r.n - 0.3) + '" rx="1.2" fill="#fff" stroke="#5B2BD6" stroke-width="0.3"/>' +
+        '<g transform="translate(' + (lx + 0.5) + ' ' + (ly + 0.5) + ') scale(' + (inre / 100) + ')">' + SILUETT + '</g>';
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + s + ' ' + s + '">' +
+      '<rect width="100%" height="100%" fill="#fff"/><path fill="#000" shape-rendering="crispEdges" d="' + d.join('') + '"/>' + logga + '</svg>';
   }
 
-  // PNG via canvas, för att kunna skriva ut eller lägga in i en affisch.
-  function png(qr, pixlarPerModul, marginal) {
-    marginal = marginal == null ? 4 : marginal;
-    var p = pixlarPerModul || 20, s = (qr.storlek + marginal * 2) * p, c = document.createElement('canvas');
+  // PNG via canvas, för att kunna skriva ut eller lägga in i en affisch. Anropar klar(dataUrl) när bilden är ritad.
+  function png(qr, val, klar) {
+    val = val || {};
+    var marginal = val.marginal == null ? 4 : val.marginal, p = val.pixlarPerModul || 20;
+    var s = (qr.storlek + marginal * 2) * p, c = document.createElement('canvas'), bild = new Image();
     c.width = c.height = s;
-    var g = c.getContext('2d');
-    g.fillStyle = '#fff'; g.fillRect(0, 0, s, s); g.fillStyle = '#000';
-    for (var y = 0; y < qr.storlek; y++) for (var x = 0; x < qr.storlek; x++) if (qr.svart(x, y)) g.fillRect((x + marginal) * p, (y + marginal) * p, p, p);
-    return c.toDataURL('image/png');
+    bild.onload = function () {
+      var g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, s, s);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(bild, 0, 0, s, s);
+      klar(c.toDataURL('image/png'));
+    };
+    bild.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg(qr, val));
   }
 
-  return { skapa: skapa, svg: svg, png: png };
+  return { skapa: skapa, svg: svg, png: png, loggaRuta: loggaRuta };
 })();
