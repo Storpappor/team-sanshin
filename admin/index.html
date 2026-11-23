@@ -48,6 +48,14 @@
       <div class="list" id="overgangar"></div>
       <div class="form"><a class="btn primary" href="../api/index.php?do=excel_overgang" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner till Excel</a>
         <a class="btn" href="../overgang/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none">Öppna övergångssidan</a></div>
+
+      <h3 class="veckorubrik">QR-kod till övergångssidan</h3>
+      <p class="muted hjalp">Skanna med mobilen för att komma till övergångssidan. Koden skapas för den adress sajten har just nu: <b id="qr-adress"></b></p>
+      <div class="qrbox"><div id="qr" role="img" aria-label="QR-kod till övergångssidan"></div></div>
+      <div class="form">
+        <a class="btn primary" id="qr-png" download="qr-overgang.png" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner som bild (PNG)</a>
+        <a class="btn" id="qr-svg" download="qr-overgang.svg" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner för tryck (SVG)</a>
+      </div>
     </section>
 
     <section class="sec" id="v-pass" role="tabpanel" aria-labelledby="f-pass" hidden>
@@ -118,6 +126,17 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="../intern/gemensamt.js"></script>
+<script src="../intern/qr.js"></script>
+<script>
+// QR-kod till övergångssidan för den adress sajten har just nu.
+(function () {
+  var adress = location.origin + '/overgang/', qr = QR.skapa(adress), svg = QR.svg(qr);
+  document.getElementById('qr-adress').textContent = adress;
+  document.getElementById('qr').innerHTML = svg;
+  document.getElementById('qr-svg').href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  document.getElementById('qr-png').href = QR.png(qr, 24);
+})();
+</script>
 <script>
 (function () {
   var data = null, filter = 'alla';

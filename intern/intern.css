@@ -121,6 +121,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .detalj summary{cursor:pointer;font-weight:700;min-height:28px}
 .detalj ul{margin:8px 0 0;padding-left:20px;font-size:15px}
 
+/* admin: QR-kod */
+.qrbox{margin-top:12px;display:inline-block;padding:12px;background:#fff;border:2px solid var(--line)}
+.qrbox svg{display:block;width:220px;height:220px}
+
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;background:var(--ink);color:var(--ground);padding:12px 18px;font-weight:700;font-size:15px;max-width:calc(100% - 32px);z-index:20}
 .toast.show{transform:translate(-50%,0);opacity:1}
 .toast.bad{background:var(--bad);color:#fff}
