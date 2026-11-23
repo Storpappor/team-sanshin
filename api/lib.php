@@ -43,7 +43,67 @@ function db(): PDO {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
     skapa_tabeller($pdo);
+    uppgradera_tabeller($pdo);
     return $pdo;
+}
+
+// Tabeller som har tillkommit efter att databasen skapades första gången.
+function uppgradera_tabeller(PDO $pdo): void {
+    try { $pdo->query('SELECT 1 FROM overgang LIMIT 1'); return; } catch (PDOException $e) { /* finns inte än */ }
+    $mysql = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+    $id = $mysql ? 'INT AUTO_INCREMENT PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+    $slut = $mysql ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : '';
+    // Nuvarande medlemmar som går över från den gamla klubben.
+    $pdo->exec("CREATE TABLE overgang (id $id, skapad VARCHAR(19) NOT NULL, namn VARCHAR(100) NOT NULL, personnummer VARCHAR(12) NOT NULL, grupp VARCHAR(100) NOT NULL, malsman VARCHAR(100), epost VARCHAR(200) NOT NULL, mobil VARCHAR(40), klar INT NOT NULL DEFAULT 0)$slut");
+}
+
+// ---------- personnummer ----------
+// Gör om till tolv siffror (ÅÅÅÅMMDDNNNN) och kontrollerar datum och kontrollsiffra. Samordningsnummer godtas.
+function normalisera_personnummer(string $s): ?string {
+    $s = trim($s);
+    if (!preg_match('/^(\d{2})?(\d{6})([-+]?)(\d{4})$/', str_replace(' ', '', $s), $m)) return null;
+    [$_, $sekel, $datum, $tecken, $sista] = $m;
+    $tio = $datum . $sista;
+    // Kontrollsiffra (Luhn) över de tio sista siffrorna.
+    $summa = 0;
+    for ($i = 0; $i < 10; $i++) {
+        $v = (int)$tio[$i] * ($i % 2 === 0 ? 2 : 1);
+        $summa += $v > 9 ? $v - 9 : $v;
+    }
+    if ($summa % 10 !== 0) return null;
+    $ar = (int)substr($datum, 0, 2);
+    if ($sekel === '') {
+        $nu = (int)date('Y');
+        $ar4 = (int)(floor($nu / 100) * 100) + $ar;
+        if ($ar4 > $nu) $ar4 -= 100;
+        if ($tecken === '+') $ar4 -= 100;
+    } else {
+        $ar4 = (int)($sekel . substr($datum, 0, 2));
+    }
+    $man = (int)substr($datum, 2, 2);
+    $dag = (int)substr($datum, 4, 2);
+    if ($dag > 60) $dag -= 60; // samordningsnummer
+    if (!checkdate($man, $dag, $ar4) || $ar4 > (int)date('Y') || $ar4 < (int)date('Y') - 110) return null;
+    return sprintf('%04d', $ar4) . substr($datum, 2) . $sista;
+}
+
+function alder_fran_personnummer(string $pnr12): int {
+    $dag = (int)substr($pnr12, 6, 2);
+    if ($dag > 60) $dag -= 60;
+    $fodd = new DateTimeImmutable(sprintf('%s-%s-%02d', substr($pnr12, 0, 4), substr($pnr12, 4, 2), $dag));
+    return $fodd->diff(new DateTimeImmutable('today'))->y;
+}
+
+// Visar bara födelsedatum, till exempel 20150312-****.
+function dolt_personnummer(string $pnr12): string {
+    return substr($pnr12, 0, 8) . '-****';
+}
+
+// Grupperna i det veckoschema som gäller nu och framåt.
+function aktuella_grupper(): array {
+    $st = db()->prepare('SELECT DISTINCT grupp FROM pass_mall WHERE (till IS NULL OR till >= ?) AND (fran IS NULL OR fran <> till) ORDER BY grupp');
+    $st->execute([date('Y-m-d')]);
+    return $st->fetchAll(PDO::FETCH_COLUMN);
 }
 
 function skapa_tabeller(PDO $pdo): void {

@@ -42,6 +42,20 @@ try {
             }
             exit;
 
+        case 'GET grupper':
+            svara(['grupper' => aktuella_grupper()]);
+
+        case 'POST overgang':
+            // Nuvarande medlem som går över från den gamla klubben. Svar direkt, mejl efteråt.
+            $mejl = ta_emot_overgang($in);
+            svara_och_fortsatt(['ok' => true]);
+            try {
+                foreach ($mejl as [$till, $amne, $text]) skicka_mejl($till, $amne, $text);
+            } catch (Throwable $e) {
+                error_log('Mejl efter övergång: ' . $e);
+            }
+            exit;
+
         // ----- admin, med lösenord -----
         case 'POST login':
             starta_session();
@@ -75,7 +89,39 @@ try {
             foreach ($anmalningar as &$a) { $a['id'] = (int)$a['id']; $a['klar'] = (bool)$a['klar']; }
             $mallar = $pdo->query('SELECT * FROM pass_mall ORDER BY veckodag, tid')->fetchAll();
             foreach ($mallar as &$m) { $m['id'] = (int)$m['id']; $m['veckodag'] = (int)$m['veckodag']; }
-            svara(['pass' => $pass, 'mallar' => $mallar, 'instruktorer' => $instruktorer, 'anmalningar' => $anmalningar]);
+            // Personnummer skickas aldrig hela till adminsidan; de finns bara i Excel-filen.
+            $overgangar = [];
+            foreach ($pdo->query('SELECT * FROM overgang ORDER BY id DESC') as $o) {
+                $overgangar[] = ['id' => (int)$o['id'], 'skapad' => $o['skapad'], 'namn' => $o['namn'],
+                    'personnummer' => dolt_personnummer($o['personnummer']), 'alder' => alder_fran_personnummer($o['personnummer']),
+                    'grupp' => $o['grupp'], 'malsman' => $o['malsman'], 'epost' => $o['epost'], 'mobil' => $o['mobil'], 'klar' => (bool)$o['klar']];
+            }
+            svara(['pass' => $pass, 'mallar' => $mallar, 'instruktorer' => $instruktorer, 'anmalningar' => $anmalningar, 'overgangar' => $overgangar]);
+
+        case 'POST overgang_klar':
+            krav_admin();
+            db()->prepare('UPDATE overgang SET klar = ? WHERE id = ?')->execute([empty($in['klar']) ? 0 : 1, (int)($in['id'] ?? 0)]);
+            svara(['ok' => true]);
+
+        case 'POST ta_bort_overgang':
+            krav_admin();
+            db()->prepare('DELETE FROM overgang WHERE id = ?')->execute([(int)($in['id'] ?? 0)]);
+            svara(['ok' => true]);
+
+        case 'GET excel_overgang':
+            krav_admin();
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="overgangar-' . date('Y-m-d') . '.csv"');
+            header('Cache-Control: no-store');
+            $ut = fopen('php://output', 'w');
+            fwrite($ut, "\xEF\xBB\xBF");
+            fputcsv($ut, ['Datum', 'Namn', 'Personnummer', 'Ålder', 'Grupp', 'Målsman', 'E-post', 'Mobil', 'Klar'], ';');
+            foreach (db()->query('SELECT * FROM overgang ORDER BY id') as $o) {
+                $p = $o['personnummer'];
+                fputcsv($ut, [$o['skapad'], skydda_excel($o['namn']), substr($p, 0, 8) . '-' . substr($p, 8), alder_fran_personnummer($p),
+                    skydda_excel($o['grupp']), skydda_excel((string)$o['malsman']), $o['epost'], skydda_excel((string)$o['mobil']), $o['klar'] ? 'Ja' : 'Nej'], ';');
+            }
+            exit;
 
         case 'POST stall_in':
             krav_admin();
@@ -313,6 +359,48 @@ function ta_emot_anmalan(array $in): array {
             "Hej $namn!\n\nTack för din anmälan till Team Sanshin. Vi har tagit emot den och hör av oss.\n\n"
             . "Det här skickade du:\n$sammanfattning\n"
             . "Vill du ändra något eller att vi tar bort dina uppgifter? Svara på det här mejlet.\n\n"
+            . "Team Sanshin\nBjörngårdsgatan 15, 118 52 Stockholm\n"],
+    ];
+}
+
+// Sparar en övergång från den gamla klubben och returnerar mejlen som ska skickas.
+// Personnumret skickas aldrig i mejl.
+function ta_emot_overgang(array $in): array {
+    if (trim((string)($in['webbplats'] ?? '')) !== '' || (int)($in['tid'] ?? 0) < 3000) return [];
+
+    $namn = trim((string)($in['namn'] ?? ''));
+    $pnr = normalisera_personnummer((string)($in['personnummer'] ?? ''));
+    $grupp = trim((string)($in['grupp'] ?? ''));
+    $malsman = trim((string)($in['malsman'] ?? ''));
+    $epost = trim((string)($in['epost'] ?? ''));
+    $mobil = trim((string)($in['mobil'] ?? ''));
+
+    if ($namn === '' || mb_strlen($namn) > 100) svara(['fel' => 'Fyll i medlemmens namn.'], 400);
+    if ($pnr === null) svara(['fel' => 'Personnumret ser inte rätt ut. Skriv det som ÅÅÅÅMMDD-NNNN.'], 400);
+    if ($grupp !== 'Vet inte' && !in_array($grupp, aktuella_grupper(), true)) svara(['fel' => 'Välj en grupp.'], 400);
+    $alder = alder_fran_personnummer($pnr);
+    if ($alder < 18 && ($malsman === '' || mb_strlen($malsman) > 100)) svara(['fel' => 'Fyll i namnet på en förälder eller målsman.'], 400);
+    if ($alder >= 18) $malsman = '';
+    if (!filter_var($epost, FILTER_VALIDATE_EMAIL) || strlen($epost) > 200) svara(['fel' => 'Fyll i en giltig e-postadress.'], 400);
+    if ($mobil !== '' && !preg_match('/^[0-9 +()\-]{5,40}$/', $mobil)) svara(['fel' => 'Mobilnumret ser inte rätt ut.'], 400);
+    if (empty($in['godkann'])) svara(['fel' => 'Kryssa i att du har läst hur uppgifterna hanteras.'], 400);
+
+    db()->prepare('INSERT INTO overgang (skapad, namn, personnummer, grupp, malsman, epost, mobil, klar) VALUES (?, ?, ?, ?, ?, ?, ?, 0)')
+        ->execute([nu(), $namn, $pnr, $grupp, $malsman ?: null, $epost, $mobil ?: null]);
+
+    $sammanfattning = "Medlem: $namn ($alder år)\nGrupp: $grupp\n"
+        . ($malsman !== '' ? "Förälder/målsman: $malsman\n" : '')
+        . "E-post: $epost\n" . ($mobil !== '' ? "Mobil: $mobil\n" : '');
+    $k = konfig();
+    return [
+        [$k['mejl']['klubben'], 'Ny övergång: ' . $namn . ' – ' . $grupp,
+            "En nuvarande medlem vill gå över till Team Sanshin.\n\n$sammanfattning\n"
+            . "Personnumret finns på adminsidan under Övergångar (i Excel-filen):\n" . rtrim($k['sajt_url'], '/') . "/admin/#overgangar\n"],
+        // UTKAST: texten ska godkännas av klubben.
+        [$epost, 'Vi har tagit emot din övergång – Team Sanshin',
+            "Hej!\n\nTack! Vi har tagit emot övergången till Team Sanshin för $namn.\n\n"
+            . "Det här skickade du (personnumret visas inte i mejlet):\n$sammanfattning\n"
+            . "Vill du ändra något eller att vi tar bort uppgifterna? Svara på det här mejlet.\n\n"
             . "Team Sanshin\nBjörngårdsgatan 15, 118 52 Stockholm\n"],
     ];
 }

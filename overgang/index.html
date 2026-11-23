@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Gå över till Team Sanshin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../stil.css">
+<style>
+  body{padding-bottom:40px}
+  .ov{padding:8px 0 48px}
+  .ov h1{font-size:clamp(34px,9vw,56px)}
+  .ov .ingress{margin-top:14px;max-width:34em;color:var(--muted)}
+  .ov form{display:flex;flex-direction:column;gap:18px;margin-top:26px;max-width:560px}
+  .ov .field select{min-height:54px;padding:10px 14px;font:inherit;font-size:17px;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:0}
+  .ov .hint{font-size:14px;color:var(--muted)}
+  .ov .integritet{padding:14px 16px;background:var(--card);border:2px solid var(--line);font-size:15px;color:var(--muted)}
+  .ov .integritet b{color:var(--ink)}
+  .ov .godkann{display:flex;gap:12px;align-items:flex-start;font-weight:700}
+  .ov .godkann input{width:22px;height:22px;margin-top:2px;accent-color:var(--purple);flex:0 0 auto}
+  .ov .done .btn{margin-top:16px;max-width:320px}
+  .ov .gomd{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .ov .btn:disabled{opacity:.6;cursor:wait}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="logo" href="../"><i aria-hidden="true"></i>TEAM SANSHIN</a>
+</div>
+
+<main class="wrap ov">
+  <h1 class="display">Gå över till Team Sanshin</h1>
+  <p class="ingress">För dig som tränar i Sanshin Kan Södermalm i dag. Fyll i formuläret en gång per medlem. Har ni flera i familjen skickar du ett formulär för var och en.</p>
+
+  <form id="form" novalidate>
+    <div class="field"><label for="namn">Medlemmens namn</label><input id="namn" type="text" autocomplete="off" required></div>
+    <div class="field">
+      <label for="pnr">Medlemmens personnummer</label>
+      <input id="pnr" type="text" inputmode="numeric" autocomplete="off" placeholder="ÅÅÅÅMMDD-NNNN" required>
+      <span class="hint">Behövs för att registrera medlemskapet i den nya klubben.</span>
+    </div>
+    <div class="field"><label for="grupp">Grupp</label><select id="grupp" required><option value="">Välj grupp</option></select></div>
+    <div class="field" id="malsman-falt" hidden>
+      <label for="malsman">Förälder eller målsman</label><input id="malsman" type="text" autocomplete="name">
+      <span class="hint">Medlemmen är under 18 år.</span>
+    </div>
+    <div class="field"><label for="epost">E-post</label><input id="epost" type="email" autocomplete="email" required></div>
+    <div class="field"><label for="mobil">Mobil (valfritt)</label><input id="mobil" type="tel" autocomplete="tel"></div>
+    <div class="gomd" aria-hidden="true"><label for="webbplats">Lämna tomt</label><input id="webbplats" type="text" tabindex="-1" autocomplete="off"></div>
+
+    <!-- UTKAST: integritetstexten ska godkännas av klubben. -->
+    <div class="integritet">
+      <b>Så hanterar vi uppgifterna.</b> Vi använder dem bara för att flytta medlemskapet till Team Sanshin och kontakta er om träningen.
+      Personnumret behövs för att registrera medlemskapet. Bara klubbens ansvariga ser uppgifterna, och personnumret skickas aldrig med e-post.
+      Vill du att vi ändrar eller tar bort något? Svara på bekräftelsemejlet du får.
+    </div>
+    <label class="godkann"><input type="checkbox" id="godkann"> Jag har läst hur uppgifterna hanteras.</label>
+
+    <p class="err" id="err" role="alert" hidden></p>
+    <button class="btn primary" type="submit" id="skicka">Skicka övergång</button>
+  </form>
+
+  <div class="done" id="done" role="status" hidden>
+    <b class="display">Tack! Övergången är mottagen.</b>
+    <p id="done-text"></p>
+    <button class="btn ghost" type="button" id="en-till">Fyll i för en till i familjen</button>
+  </div>
+</main>
+
+<footer>Team Sanshin – karate på Söder, med rötter i Sanshin Kan sedan 1969</footer>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var visad = Date.now();
+
+  // Grupperna hämtas från veckoschemat på servern.
+  fetch('../api/index.php?do=grupper').then(function (r) { return r.json(); }).then(function (j) {
+    (j.grupper || []).concat(['Vet inte']).forEach(function (g) {
+      var o = document.createElement('option'); o.value = g; o.textContent = g; $('grupp').appendChild(o);
+    });
+  }).catch(function () {
+    var o = document.createElement('option'); o.value = 'Vet inte'; o.textContent = 'Vet inte'; $('grupp').appendChild(o);
+  });
+
+  // Ungefärlig ålder från personnumret, för att visa fältet för målsman.
+  function alder(s) {
+    var m = s.replace(/\s/g, '').match(/^(\d{2})?(\d{2})(\d{2})(\d{2})[-+]?\d{4}$/);
+    if (!m) return null;
+    var nu = new Date(), ar = +m[2];
+    ar = m[1] ? +(m[1] + m[2]) : (2000 + ar > nu.getFullYear() ? 1900 + ar : 2000 + ar);
+    var dag = +m[4] > 60 ? +m[4] - 60 : +m[4];
+    var fodd = new Date(ar, +m[3] - 1, dag), a = nu.getFullYear() - fodd.getFullYear();
+    if (nu < new Date(nu.getFullYear(), fodd.getMonth(), fodd.getDate())) a--;
+    return a;
+  }
+  $('pnr').addEventListener('input', function () {
+    var a = alder($('pnr').value);
+    $('malsman-falt').hidden = !(a !== null && a < 18);
+  });
+
+  function fel(t) { $('err').textContent = t; $('err').hidden = false; $('err').scrollIntoView({block: 'center'}); }
+
+  $('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('err').hidden = true;
+    var a = alder($('pnr').value);
+    if (!$('namn').value.trim()) return fel('Fyll i medlemmens namn.');
+    if (a === null) return fel('Skriv personnumret som ÅÅÅÅMMDD-NNNN.');
+    if (!$('grupp').value) return fel('Välj en grupp.');
+    if (a < 18 && !$('malsman').value.trim()) return fel('Fyll i namnet på en förälder eller målsman.');
+    if (!$('epost').value || !$('epost').checkValidity()) return fel('Fyll i en giltig e-postadress.');
+    if (!$('godkann').checked) return fel('Kryssa i att du har läst hur uppgifterna hanteras.');
+
+    var knapp = $('skicka'); knapp.disabled = true; knapp.textContent = 'Skickar …';
+    fetch('../api/index.php?do=overgang', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
+      namn: $('namn').value, personnummer: $('pnr').value, grupp: $('grupp').value, malsman: $('malsman').value,
+      epost: $('epost').value, mobil: $('mobil').value, godkann: $('godkann').checked,
+      webbplats: $('webbplats').value, tid: Date.now() - visad
+    })}).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.fel || ''); });
+    }).then(function () {
+      $('done-text').textContent = 'Vi har skickat en bekräftelse till ' + $('epost').value.trim() + '.';
+      $('form').hidden = true; $('done').hidden = false; window.scrollTo(0, 0);
+    }, function (x) {
+      fel((!(x instanceof TypeError) && x && x.message) || 'Det gick inte att skicka. Kolla uppkopplingen och försök igen.');
+    }).then(function () { knapp.disabled = false; knapp.textContent = 'Skicka övergång'; });
+  });
+
+  // Nästa familjemedlem: behåll kontaktuppgifterna, töm resten.
+  $('en-till').addEventListener('click', function () {
+    ['namn', 'pnr', 'malsman'].forEach(function (id) { $(id).value = ''; });
+    $('grupp').value = ''; $('godkann').checked = false; $('malsman-falt').hidden = true;
+    visad = Date.now(); $('done').hidden = true; $('form').hidden = false; $('namn').focus();
+  });
+})();
+</script>
+</body>
+</html>

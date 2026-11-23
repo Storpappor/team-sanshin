@@ -34,12 +34,20 @@
       <button type="button" role="tab" id="f-anmalningar" aria-controls="v-anmalningar">Anmälningar <span class="badge" id="b-anmalningar"></span></button>
       <button type="button" role="tab" id="f-pass" aria-controls="v-pass">Pass <span class="badge" id="b-pass"></span></button>
       <button type="button" role="tab" id="f-instruktorer" aria-controls="v-instruktorer">Instruktörer</button>
+      <button type="button" role="tab" id="f-overgangar" aria-controls="v-overgangar">Övergångar <span class="badge" id="b-overgangar"></span></button>
     </nav>
 
     <section class="sec" id="v-anmalningar" role="tabpanel" aria-labelledby="f-anmalningar">
       <p class="muted">Anmälningar från sajten. Bocka av när du har hört av dig. Ta bort om någon ber om det.</p>
       <div class="list" id="anmalningar"></div>
       <div class="form"><a class="btn primary" href="../api/index.php?do=excel" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner till Excel</a></div>
+    </section>
+
+    <section class="sec" id="v-overgangar" role="tabpanel" aria-labelledby="f-overgangar" hidden>
+      <p class="muted">Nuvarande medlemmar som går över från den gamla klubben. Personnumret visas bara som födelsedatum här; hela finns i Excel-filen. Ta bort uppgifterna när övergången är klar.</p>
+      <div class="list" id="overgangar"></div>
+      <div class="form"><a class="btn primary" href="../api/index.php?do=excel_overgang" style="display:inline-flex;align-items:center;text-decoration:none">Ladda ner till Excel</a>
+        <a class="btn" href="../overgang/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none">Öppna övergångssidan</a></div>
     </section>
 
     <section class="sec" id="v-pass" role="tabpanel" aria-labelledby="f-pass" hidden>
@@ -116,7 +124,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var ARENDEN = {termin: 'Terminen', prov: 'Provträning', present: 'Presentkort'};
   var VEM = {barn: 'Barn', ungdom: 'Ungdom', du: 'Vuxen'};
-  var FLIKAR = ['anmalningar', 'pass', 'instruktorer'];
+  var FLIKAR = ['anmalningar', 'pass', 'instruktorer', 'overgangar'];
 
   /* ---------- flikar ---------- */
   function visaFlik(namn) {
@@ -168,7 +176,24 @@
     var saknas = data.pass.filter(function (p) { return !p.installt && !p.ledare.length; }).length;
     $('b-anmalningar').textContent = nya || ''; $('b-anmalningar').title = nya + ' nya';
     $('b-pass').textContent = saknas || ''; $('b-pass').title = saknas + ' saknar instruktör';
-    ritaAnmalningar(); ritaPass(); ritaInstruktorer();
+    var nyaOv = (data.overgangar || []).filter(function (o) { return !o.klar; }).length;
+    $('b-overgangar').textContent = nyaOv || ''; $('b-overgangar').title = nyaOv + ' nya';
+    ritaAnmalningar(); ritaPass(); ritaInstruktorer(); ritaOvergangar();
+  }
+
+  function ritaOvergangar() {
+    var box = $('overgangar'); box.innerHTML = '';
+    var lista = data.overgangar || [];
+    if (!lista.length) box.appendChild(el('div', 'li m', 'Inga övergångar än.'));
+    lista.forEach(function (o) {
+      box.appendChild(rad(o.namn + ' · ' + o.grupp,
+        o.personnummer + ' (' + o.alder + ' år)' + (o.malsman ? ' · målsman ' + o.malsman : '') + ' · ' + o.epost + (o.mobil ? ' · ' + o.mobil : '') + ' · ' + o.skapad.slice(0, 16),
+        [knapp(o.klar ? 'Ångra' : 'Klar', function () { return gor('overgang_klar', {id: o.id, klar: !o.klar}); }),
+         knapp('Ta bort', function () {
+           if (!confirm('Ta bort övergången för ' + o.namn + ', med personnummer? Det går inte att ångra.')) return;
+           return gor('ta_bort_overgang', {id: o.id}, 'Övergången är borttagen');
+         })], o.klar ? 'done' : null));
+    });
   }
 
   function ritaAnmalningar() {
