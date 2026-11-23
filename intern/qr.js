@@ -220,8 +220,14 @@ var QR = (function () {
     var logga = '';
     if (r) {
       var lx = r.x0 + marginal, ly = r.y0 + marginal, inre = r.n - 1;
-      logga = '<rect x="' + (lx + 0.15) + '" y="' + (ly + 0.15) + '" width="' + (r.n - 0.3) + '" height="' + (r.n - 0.3) + '" rx="1.2" fill="#fff" stroke="#5B2BD6" stroke-width="0.3"/>' +
-        '<g transform="translate(' + (lx + 0.5) + ' ' + (ly + 0.5) + ') scale(' + (inre / 100) + ')">' + SILUETT + '</g>';
+      if (typeof val.logga === 'string') {
+        // En egen bild, till exempel klubbens emblem (som data-adress, så att filen blir fristående).
+        logga = '<rect x="' + lx + '" y="' + ly + '" width="' + r.n + '" height="' + r.n + '" fill="#fff"/>' +
+          '<image x="' + (lx + 0.4) + '" y="' + (ly + 0.4) + '" width="' + (r.n - 0.8) + '" height="' + (r.n - 0.8) + '" preserveAspectRatio="xMidYMid meet" href="' + val.logga + '"/>';
+      } else {
+        logga = '<rect x="' + (lx + 0.15) + '" y="' + (ly + 0.15) + '" width="' + (r.n - 0.3) + '" height="' + (r.n - 0.3) + '" rx="1.2" fill="#fff" stroke="#5B2BD6" stroke-width="0.3"/>' +
+          '<g transform="translate(' + (lx + 0.5) + ' ' + (ly + 0.5) + ') scale(' + (inre / 100) + ')">' + SILUETT + '</g>';
+      }
     }
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + s + ' ' + s + '">' +
       '<rect width="100%" height="100%" fill="#fff"/><path fill="#000" shape-rendering="crispEdges" d="' + d.join('') + '"/>' + logga + '</svg>';

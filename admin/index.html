@@ -130,12 +130,21 @@
 <script>
 // QR-kod till övergångssidan för den adress sajten har just nu.
 (function () {
-  // Högsta felrättningen (H), så att karatesiluetten i mitten inte gör koden oläslig.
-  var adress = location.origin + '/overgang/', qr = QR.skapa(adress, 'H'), val = {logga: true}, svg = QR.svg(qr, val);
+  // Högsta felrättningen (H), så att emblemet i mitten inte gör koden oläslig.
+  var adress = location.origin + '/overgang/', qr = QR.skapa(adress, 'H');
   document.getElementById('qr-adress').textContent = adress;
-  document.getElementById('qr').innerHTML = svg;
-  document.getElementById('qr-svg').href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  QR.png(qr, {logga: true, pixlarPerModul: 24}, function (url) { document.getElementById('qr-png').href = url; });
+  function visa(logga) {
+    var svg = QR.svg(qr, {logga: logga});
+    document.getElementById('qr').innerHTML = svg;
+    document.getElementById('qr-svg').href = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    QR.png(qr, {logga: logga, pixlarPerModul: 24}, function (url) { document.getElementById('qr-png').href = url; });
+  }
+  // Emblemet bäddas in i filen, så att nedladdad SVG och PNG fungerar fristående. Går det inte används siluetten.
+  fetch('../bilder/qr-emblem.png').then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) {
+    var fr = new FileReader();
+    fr.onload = function () { visa(fr.result); };
+    fr.readAsDataURL(b);
+  }).catch(function () { visa(true); });
 })();
 </script>
 <script>
