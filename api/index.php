@@ -93,7 +93,7 @@ try {
             $overgangar = [];
             foreach ($pdo->query('SELECT * FROM overgang ORDER BY id DESC') as $o) {
                 $overgangar[] = ['id' => (int)$o['id'], 'skapad' => $o['skapad'], 'namn' => $o['namn'],
-                    'personnummer' => dolt_personnummer($o['personnummer']), 'alder' => alder_fran_personnummer($o['personnummer']),
+                    'personnummer' => dolt_personnummer($o['personnummer']), 'fodelsear' => substr($o['personnummer'], 0, 4),
                     'grupp' => $o['grupp'], 'malsman' => $o['malsman'], 'epost' => $o['epost'], 'epost_fler' => $o['epost_fler'],
                     'mobil' => $o['mobil'], 'klar' => (bool)$o['klar']];
             }
@@ -116,10 +116,10 @@ try {
             header('Cache-Control: no-store');
             $ut = fopen('php://output', 'w');
             fwrite($ut, "\xEF\xBB\xBF");
-            fputcsv($ut, ['Datum', 'Namn', 'Personnummer', 'Ålder', 'Målsman', 'E-post', 'Fler e-post', 'Mobil', 'Grupp (tidiga registreringar)', 'Klar'], ';');
+            fputcsv($ut, ['Datum', 'Namn', 'Personnummer', 'Födelseår', 'Målsman', 'E-post', 'Fler e-post', 'Mobil', 'Grupp (tidiga registreringar)', 'Klar'], ';');
             foreach (db()->query('SELECT * FROM overgang ORDER BY id') as $o) {
                 $p = $o['personnummer'];
-                fputcsv($ut, [$o['skapad'], skydda_excel($o['namn']), substr($p, 0, 8) . '-' . substr($p, 8), alder_fran_personnummer($p),
+                fputcsv($ut, [$o['skapad'], skydda_excel($o['namn']), substr($p, 0, 8) . '-' . substr($p, 8), substr($p, 0, 4),
                     skydda_excel((string)$o['malsman']), $o['epost'], (string)$o['epost_fler'], skydda_excel((string)$o['mobil']),
                     skydda_excel($o['grupp']), $o['klar'] ? 'Ja' : 'Nej'], ';');
             }
@@ -243,7 +243,7 @@ try {
             header('Cache-Control: no-store');
             $ut = fopen('php://output', 'w');
             fwrite($ut, "\xEF\xBB\xBF"); // så att Excel förstår å, ä och ö
-            fputcsv($ut, ['Datum', 'Ärende', 'Vem', 'Ålder', 'Namn', 'E-post', 'Mobil', 'Klar'], ';');
+            fputcsv($ut, ['Datum', 'Ärende', 'Vem', 'Födelseår', 'Namn', 'E-post', 'Mobil', 'Klar'], ';');
             foreach (db()->query('SELECT * FROM anmalan ORDER BY id') as $a) {
                 fputcsv($ut, [$a['skapad'], ARENDEN[$a['arende']] ?? $a['arende'], vem_text($a['vem']), $a['alder'],
                     skydda_excel($a['namn']), $a['epost'], skydda_excel((string)$a['mobil']), $a['klar'] ? 'Ja' : 'Nej'], ';');
@@ -339,7 +339,9 @@ function ta_emot_anmalan(array $in): array {
     if ($namn === '' || mb_strlen($namn) > 100) svara(['fel' => 'Fyll i ditt namn.'], 400);
     if (!filter_var($epost, FILTER_VALIDATE_EMAIL) || strlen($epost) > 200) svara(['fel' => 'Fyll i en giltig e-postadress.'], 400);
     if ($mobil !== '' && !preg_match('/^[0-9 +()\-]{5,40}$/', $mobil)) svara(['fel' => 'Mobilnumret ser inte rätt ut.'], 400);
-    if ($alder !== '' && (!ctype_digit($alder) || (int)$alder < 1 || (int)$alder > 99)) svara(['fel' => 'Åldern ser inte rätt ut.'], 400);
+    // Fältet heter alder av historiska skäl men innehåller barnets födelseår.
+    $iar = (int)date('Y');
+    if ($alder !== '' && (!preg_match('/^\d{4}$/', $alder) || (int)$alder < $iar - 99 || (int)$alder > $iar)) svara(['fel' => 'Skriv födelseåret med fyra siffror, till exempel 2016.'], 400);
     if (!array_intersect($vem, ['barn', 'ungdom'])) $alder = '';
 
     db()->prepare('INSERT INTO anmalan (skapad, arende, vem, alder, namn, epost, mobil, klar) VALUES (?, ?, ?, ?, ?, ?, ?, 0)')
@@ -347,7 +349,7 @@ function ta_emot_anmalan(array $in): array {
 
     $sammanfattning = "Ärende: " . ARENDEN[$arende] . "\n"
         . "Vem ska träna: " . vem_text(implode(',', $vem)) . "\n"
-        . ($alder !== '' ? "Barnets ålder: $alder år\n" : '')
+        . ($alder !== '' ? "Barnets födelseår: $alder\n" : '')
         . "Namn: $namn\nE-post: $epost\n"
         . ($mobil !== '' ? "Mobil: $mobil\n" : '');
 
@@ -398,7 +400,7 @@ function ta_emot_overgang(array $in): array {
         ->execute([nu(), $namn, $pnr, '', $malsman ?: null, $epost, $fler ? implode(', ', $fler) : null, $mobil ?: null]);
 
     $alla = array_merge([$epost], $fler);
-    $sammanfattning = "Medlem: $namn ($alder år)\n"
+    $sammanfattning = "Medlem: $namn (född " . substr($pnr, 0, 4) . ")\n"
         . ($malsman !== '' ? "Förälder/målsman: $malsman\n" : '')
         . 'E-post till kontaktlistan: ' . implode(', ', $alla) . "\n" . ($mobil !== '' ? "Mobil: $mobil\n" : '');
     $k = konfig();
