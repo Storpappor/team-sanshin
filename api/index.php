@@ -116,12 +116,12 @@ try {
             header('Cache-Control: no-store');
             $ut = fopen('php://output', 'w');
             fwrite($ut, "\xEF\xBB\xBF");
-            fputcsv($ut, ['Datum', 'Namn', 'Personnummer', 'Födelseår', 'Målsman', 'E-post', 'Fler e-post', 'Mobil', 'Grupp (tidiga registreringar)', 'Bilder får publiceras', 'Klar'], ';');
+            fputcsv($ut, ['Datum', 'Namn', 'Personnummer', 'Födelseår', 'Målsman', 'E-post', 'Fler e-post', 'Mobil', 'Grupp (tidiga registreringar)', 'Klar'], ';');
             foreach (db()->query('SELECT * FROM overgang ORDER BY id') as $o) {
                 $p = $o['personnummer'];
                 fputcsv($ut, [$o['skapad'], skydda_excel($o['namn']), substr($p, 0, 8) . '-' . substr($p, 8), substr($p, 0, 4),
                     skydda_excel((string)$o['malsman']), $o['epost'], (string)$o['epost_fler'], skydda_excel((string)$o['mobil']),
-                    skydda_excel($o['grupp']), $o['ingen_bild'] ? 'Nej' : 'Ja', $o['klar'] ? 'Ja' : 'Nej'], ';');
+                    skydda_excel($o['grupp']), $o['klar'] ? 'Ja' : 'Nej'], ';');
             }
             exit;
 
@@ -243,10 +243,10 @@ try {
             header('Cache-Control: no-store');
             $ut = fopen('php://output', 'w');
             fwrite($ut, "\xEF\xBB\xBF"); // så att Excel förstår å, ä och ö
-            fputcsv($ut, ['Datum', 'Ärende', 'Vem', 'Födelseår', 'Namn', 'E-post', 'Mobil', 'Bilder får publiceras', 'Klar'], ';');
+            fputcsv($ut, ['Datum', 'Ärende', 'Vem', 'Födelseår', 'Namn', 'E-post', 'Mobil', 'Klar'], ';');
             foreach (db()->query('SELECT * FROM anmalan ORDER BY id') as $a) {
                 fputcsv($ut, [$a['skapad'], ARENDEN[$a['arende']] ?? $a['arende'], vem_text($a['vem']), $a['alder'],
-                    skydda_excel($a['namn']), $a['epost'], skydda_excel((string)$a['mobil']), $a['ingen_bild'] ? 'Nej' : 'Ja', $a['klar'] ? 'Ja' : 'Nej'], ';');
+                    skydda_excel($a['namn']), $a['epost'], skydda_excel((string)$a['mobil']), $a['klar'] ? 'Ja' : 'Nej'], ';');
             }
             exit;
 
@@ -352,8 +352,7 @@ function ta_emot_anmalan(array $in): array {
         . "Vem ska träna: " . vem_text(implode(',', $vem)) . "\n"
         . ($alder !== '' ? "Barnets födelseår: $alder\n" : '')
         . "Namn: $namn\nE-post: $epost\n"
-        . ($mobil !== '' ? "Mobil: $mobil\n" : '')
-        . 'Bilder: ' . ($ingenBild ? 'får INTE publiceras' : 'får publiceras') . "\n";
+        . ($mobil !== '' ? "Mobil: $mobil\n" : '');
 
     $k = konfig();
     return [
@@ -364,7 +363,7 @@ function ta_emot_anmalan(array $in): array {
         [$epost, 'Vi har fått din anmälan – Team Sanshin',
             "Hej $namn!\n\nTack för din anmälan till Team Sanshin. Vi har tagit emot den och hör av oss.\n\n"
             . "Det här skickade du:\n$sammanfattning\n"
-            . "Vill du ändra något eller att vi tar bort dina uppgifter? Svara på det här mejlet.\n\n"
+            . "Vill du ändra något eller att vi tar bort dina uppgifter? Svara på det här mejlet.\n" . "Vill du inte att bilder där ni syns publiceras? Svara på det här mejlet så noterar vi det.\n\n"
             . "Team Sanshin\nBjörngårdsgatan 15, 118 52 Stockholm\n"],
     ];
 }
@@ -405,8 +404,7 @@ function ta_emot_overgang(array $in): array {
     $alla = array_merge([$epost], $fler);
     $sammanfattning = "Medlem: $namn (född " . substr($pnr, 0, 4) . ")\n"
         . ($malsman !== '' ? "Förälder/målsman: $malsman\n" : '')
-        . 'E-post till kontaktlistan: ' . implode(', ', $alla) . "\n" . ($mobil !== '' ? "Mobil: $mobil\n" : '')
-        . 'Bilder: ' . ($ingenBild ? 'får INTE publiceras' : 'får publiceras') . "\n";
+        . 'E-post till kontaktlistan: ' . implode(', ', $alla) . "\n" . ($mobil !== '' ? "Mobil: $mobil\n" : '');
     $k = konfig();
     $mejl = [
         [$k['mejl']['klubben'], 'Ny registrering 2027: ' . $namn,
@@ -419,7 +417,7 @@ function ta_emot_overgang(array $in): array {
             "Hej!\n\nTack! Vi har tagit emot registreringen för vårterminen 2027 i Team Sanshin för $namn.\n\n"
             . "I början av januari skickar vi ut mejl om terminsstart, gruppindelning, terminsavgift och annan information.\n\n"
             . "Det här skickade du (personnumret visas inte i mejlet):\n$sammanfattning\n"
-            . "Vill du ändra något eller att vi tar bort uppgifterna? Svara på det här mejlet.\n\n"
+            . "Vill du ändra något eller att vi tar bort uppgifterna? Svara på det här mejlet.\n" . "Vill du inte att bilder där medlemmen syns publiceras? Svara på det här mejlet så noterar vi det.\n\n"
             . "Team Sanshin\nBjörngårdsgatan 15, 118 52 Stockholm\n"];
     }
     return $mejl;

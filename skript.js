@@ -89,7 +89,6 @@
     fetch('api/index.php?do=anmalan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       arende:goal(), vem:who, alder:whoBarn.checked?document.getElementById('age').value:'',
       namn:document.getElementById('name').value, epost:email.value, mobil:document.getElementById('tel').value,
-      ingen_bild:document.getElementById('ingen-bild').checked,
       webbplats:document.getElementById('webbplats').value, tid:Date.now()-shown
     })}).then(function(r){
       return r.json().catch(function(){return {};}).then(function(j){ if(!r.ok) throw new Error(j.fel||''); });
