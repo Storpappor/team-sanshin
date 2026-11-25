@@ -239,7 +239,7 @@ function instruktor_historik(string $fran, string $till): array {
     return $ut;
 }
 
-function hitta_pass(string $id, int $dagar = 60): array {
+function hitta_pass(string $id, int $dagar = 400): array {
     foreach (kommande_pass($dagar) as $p) if ($p['id'] === $id) return $p;
     svara(['fel' => 'Passet finns inte.'], 404);
 }

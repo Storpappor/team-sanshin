@@ -18,11 +18,17 @@ try {
         // ----- öppet för alla -----
         case 'GET schema':
             // En vecka i taget: vecka=0 är denna vecka, 1 nästa och så vidare, högst 12 veckor fram.
-            $n = max(0, min(12, (int)($_GET['vecka'] ?? 0)));
+            // vecka=forsta: första veckan med träning, till exempel vid terminsstart.
             $idag = new DateTimeImmutable('today');
-            $mandag = $idag->modify('-' . ((int)$idag->format('N') - 1) . ' day')->modify("+$n week");
+            $denna = $idag->modify('-' . ((int)$idag->format('N') - 1) . ' day');
+            if (($_GET['vecka'] ?? '') === 'forsta') {
+                for ($n = 0; $n < 12 && !kommande_pass(7, $denna->modify("+$n week")); $n++);
+            } else {
+                $n = max(0, min(12, (int)($_GET['vecka'] ?? 0)));
+            }
+            $mandag = $denna->modify("+$n week");
             svara([
-                'vecka' => (int)$mandag->format('W'), 'fran' => $mandag->format('Y-m-d'),
+                'n' => $n, 'vecka' => (int)$mandag->format('W'), 'fran' => $mandag->format('Y-m-d'),
                 'till' => $mandag->modify('+6 day')->format('Y-m-d'), 'sista' => $n >= 12,
                 'pass' => array_map(fn($p) => [
                     'datum' => $p['datum'], 'tid' => $p['tid'], 'grupp' => $p['grupp'], 'kategori' => $p['kategori'],
@@ -79,7 +85,9 @@ try {
             $pdo = db();
             $instruktorer = [];
             $antal = [];
-            $pass = kommande_pass(28);
+            // Fyra veckor från första kommande pass, så att passen efter terminsstart går att bemanna i förväg.
+            $forsta = kommande_pass(400);
+            $pass = kommande_pass(28, $forsta ? new DateTimeImmutable($forsta[0]['datum']) : null);
             foreach ($pass as $p) foreach ($p['ledare'] as $l) $antal[$l['id']] = ($antal[$l['id']] ?? 0) + 1;
             foreach ($pdo->query('SELECT * FROM instruktor ORDER BY namn') as $i) {
                 $instruktorer[] = ['id' => (int)$i['id'], 'namn' => $i['namn'], 'epost' => $i['epost'],

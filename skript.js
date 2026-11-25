@@ -31,7 +31,7 @@
   function loadWeek(n){
     prev.disabled=next.disabled=true;
     fetch('api/index.php?do=schema&vecka='+n).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){
-      offset=n;
+      offset=n=(typeof j.n==='number'?j.n:n);
       var a=toDate(j.fran), b=toDate(j.till);
       label.textContent='Vecka '+j.vecka+' · '+a.getDate()+(a.getMonth()!==b.getMonth()?' '+MONTHS[a.getMonth()]:'')+'–'+b.getDate()+' '+MONTHS[b.getMonth()];
       grid.textContent='';
@@ -50,7 +50,7 @@
   if(!DEMO){
     prev.addEventListener('click',function(){loadWeek(offset-1);});
     next.addEventListener('click',function(){loadWeek(offset+1);});
-    loadWeek(0);
+    loadWeek('forsta'); // börja på första veckan med träning
   }
 
 
