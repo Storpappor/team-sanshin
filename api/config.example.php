@@ -1,6 +1,8 @@
 <?php
 // Inställningar för servern. Kopiera den här filen till config.local.php och fyll i.
 // config.local.php innehåller lösenord och laddas aldrig upp till GitHub.
+// Hos Loopia ligger den utanför webbmappen: ~/sanshin-privat/config.local.php
+// (servern letar där först, sedan i api/).
 return [
     // Databasen.
     // På egen dator: en fil (SQLite).

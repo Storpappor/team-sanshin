@@ -17,11 +17,17 @@ function svara(array $data, int $kod = 200): never {
     exit;
 }
 
+// Inställningarna letas först upp utanför webbmappen (säkrast, används hos Loopia):
+//   <hemmappen>/sanshin-privat/config.local.php, alltså två nivåer ovanför public_html.
+// Annars används api/config.local.php (egen dator och testservern).
 function konfig(): array {
     static $k = null;
     if ($k === null) {
-        $fil = __DIR__ . '/config.local.php';
-        if (!is_file($fil)) svara(['fel' => 'Servern saknar inställningar.'], 500);
+        $fil = null;
+        foreach ([dirname(__DIR__, 3) . '/sanshin-privat/config.local.php', __DIR__ . '/config.local.php'] as $f) {
+            if (is_file($f)) { $fil = $f; break; }
+        }
+        if ($fil === null) svara(['fel' => 'Servern saknar inställningar.'], 500);
         $k = require $fil;
     }
     return $k;
