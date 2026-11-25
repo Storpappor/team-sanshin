@@ -86,7 +86,7 @@ try {
                     'antal' => $antal[(int)$i['id']] ?? 0];
             }
             $anmalningar = $pdo->query('SELECT * FROM anmalan ORDER BY id DESC')->fetchAll();
-            foreach ($anmalningar as &$a) { $a['id'] = (int)$a['id']; $a['klar'] = (bool)$a['klar']; }
+            foreach ($anmalningar as &$a) { $a['id'] = (int)$a['id']; $a['klar'] = (bool)$a['klar']; $a['ingen_bild'] = (bool)$a['ingen_bild']; }
             $mallar = $pdo->query('SELECT * FROM pass_mall ORDER BY veckodag, tid')->fetchAll();
             foreach ($mallar as &$m) { $m['id'] = (int)$m['id']; $m['veckodag'] = (int)$m['veckodag']; }
             // Personnummer skickas aldrig hela till adminsidan; de finns bara i Excel-filen.
@@ -95,7 +95,7 @@ try {
                 $overgangar[] = ['id' => (int)$o['id'], 'skapad' => $o['skapad'], 'namn' => $o['namn'],
                     'personnummer' => dolt_personnummer($o['personnummer']), 'fodelsear' => substr($o['personnummer'], 0, 4),
                     'grupp' => $o['grupp'], 'malsman' => $o['malsman'], 'epost' => $o['epost'], 'epost_fler' => $o['epost_fler'],
-                    'mobil' => $o['mobil'], 'klar' => (bool)$o['klar']];
+                    'mobil' => $o['mobil'], 'klar' => (bool)$o['klar'], 'ingen_bild' => (bool)$o['ingen_bild']];
             }
             svara(['pass' => $pass, 'mallar' => $mallar, 'instruktorer' => $instruktorer, 'anmalningar' => $anmalningar, 'overgangar' => $overgangar]);
 
@@ -116,12 +116,12 @@ try {
             header('Cache-Control: no-store');
             $ut = fopen('php://output', 'w');
             fwrite($ut, "\xEF\xBB\xBF");
-            fputcsv($ut, ['Datum', 'Namn', 'Personnummer', 'Födelseår', 'Målsman', 'E-post', 'Fler e-post', 'Mobil', 'Grupp (tidiga registreringar)', 'Klar'], ';');
+            fputcsv($ut, ['Datum', 'Namn', 'Personnummer', 'Födelseår', 'Målsman', 'E-post', 'Fler e-post', 'Mobil', 'Grupp (tidiga registreringar)', 'Bilder får publiceras', 'Klar'], ';');
             foreach (db()->query('SELECT * FROM overgang ORDER BY id') as $o) {
                 $p = $o['personnummer'];
                 fputcsv($ut, [$o['skapad'], skydda_excel($o['namn']), substr($p, 0, 8) . '-' . substr($p, 8), substr($p, 0, 4),
                     skydda_excel((string)$o['malsman']), $o['epost'], (string)$o['epost_fler'], skydda_excel((string)$o['mobil']),
-                    skydda_excel($o['grupp']), $o['klar'] ? 'Ja' : 'Nej'], ';');
+                    skydda_excel($o['grupp']), $o['ingen_bild'] ? 'Nej' : 'Ja', $o['klar'] ? 'Ja' : 'Nej'], ';');
             }
             exit;
 
@@ -243,10 +243,10 @@ try {
             header('Cache-Control: no-store');
             $ut = fopen('php://output', 'w');
             fwrite($ut, "\xEF\xBB\xBF"); // så att Excel förstår å, ä och ö
-            fputcsv($ut, ['Datum', 'Ärende', 'Vem', 'Födelseår', 'Namn', 'E-post', 'Mobil', 'Klar'], ';');
+            fputcsv($ut, ['Datum', 'Ärende', 'Vem', 'Födelseår', 'Namn', 'E-post', 'Mobil', 'Bilder får publiceras', 'Klar'], ';');
             foreach (db()->query('SELECT * FROM anmalan ORDER BY id') as $a) {
                 fputcsv($ut, [$a['skapad'], ARENDEN[$a['arende']] ?? $a['arende'], vem_text($a['vem']), $a['alder'],
-                    skydda_excel($a['namn']), $a['epost'], skydda_excel((string)$a['mobil']), $a['klar'] ? 'Ja' : 'Nej'], ';');
+                    skydda_excel($a['namn']), $a['epost'], skydda_excel((string)$a['mobil']), $a['ingen_bild'] ? 'Nej' : 'Ja', $a['klar'] ? 'Ja' : 'Nej'], ';');
             }
             exit;
 
@@ -344,14 +344,16 @@ function ta_emot_anmalan(array $in): array {
     if ($alder !== '' && (!preg_match('/^\d{4}$/', $alder) || (int)$alder < $iar - 99 || (int)$alder > $iar)) svara(['fel' => 'Skriv födelseåret med fyra siffror, till exempel 2016.'], 400);
     if (!array_intersect($vem, ['barn', 'ungdom'])) $alder = '';
 
-    db()->prepare('INSERT INTO anmalan (skapad, arende, vem, alder, namn, epost, mobil, klar) VALUES (?, ?, ?, ?, ?, ?, ?, 0)')
-        ->execute([nu(), $arende, implode(',', $vem), $alder ?: null, $namn, $epost, $mobil ?: null]);
+    $ingenBild = empty($in['ingen_bild']) ? 0 : 1;
+    db()->prepare('INSERT INTO anmalan (skapad, arende, vem, alder, namn, epost, mobil, klar, ingen_bild) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)')
+        ->execute([nu(), $arende, implode(',', $vem), $alder ?: null, $namn, $epost, $mobil ?: null, $ingenBild]);
 
     $sammanfattning = "Ärende: " . ARENDEN[$arende] . "\n"
         . "Vem ska träna: " . vem_text(implode(',', $vem)) . "\n"
         . ($alder !== '' ? "Barnets födelseår: $alder\n" : '')
         . "Namn: $namn\nE-post: $epost\n"
-        . ($mobil !== '' ? "Mobil: $mobil\n" : '');
+        . ($mobil !== '' ? "Mobil: $mobil\n" : '')
+        . 'Bilder: ' . ($ingenBild ? 'får INTE publiceras' : 'får publiceras') . "\n";
 
     $k = konfig();
     return [
@@ -396,13 +398,15 @@ function ta_emot_overgang(array $in): array {
     if ($mobil !== '' && !preg_match('/^[0-9 +()\-]{5,40}$/', $mobil)) svara(['fel' => 'Mobilnumret ser inte rätt ut.'], 400);
     if (empty($in['godkann'])) svara(['fel' => 'Kryssa i att du har läst hur uppgifterna hanteras.'], 400);
 
-    db()->prepare('INSERT INTO overgang (skapad, namn, personnummer, grupp, malsman, epost, epost_fler, mobil, klar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)')
-        ->execute([nu(), $namn, $pnr, '', $malsman ?: null, $epost, $fler ? implode(', ', $fler) : null, $mobil ?: null]);
+    $ingenBild = empty($in['ingen_bild']) ? 0 : 1;
+    db()->prepare('INSERT INTO overgang (skapad, namn, personnummer, grupp, malsman, epost, epost_fler, mobil, klar, ingen_bild) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)')
+        ->execute([nu(), $namn, $pnr, '', $malsman ?: null, $epost, $fler ? implode(', ', $fler) : null, $mobil ?: null, $ingenBild]);
 
     $alla = array_merge([$epost], $fler);
     $sammanfattning = "Medlem: $namn (född " . substr($pnr, 0, 4) . ")\n"
         . ($malsman !== '' ? "Förälder/målsman: $malsman\n" : '')
-        . 'E-post till kontaktlistan: ' . implode(', ', $alla) . "\n" . ($mobil !== '' ? "Mobil: $mobil\n" : '');
+        . 'E-post till kontaktlistan: ' . implode(', ', $alla) . "\n" . ($mobil !== '' ? "Mobil: $mobil\n" : '')
+        . 'Bilder: ' . ($ingenBild ? 'får INTE publiceras' : 'får publiceras') . "\n";
     $k = konfig();
     $mejl = [
         [$k['mejl']['klubben'], 'Ny registrering 2027: ' . $namn,

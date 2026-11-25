@@ -211,7 +211,7 @@
     if (!lista.length) box.appendChild(el('div', 'li m', 'Inga registreringar än.'));
     lista.forEach(function (o) {
       box.appendChild(rad(o.namn + (o.grupp ? ' · ' + o.grupp : ''),
-        o.personnummer + ' (född ' + o.fodelsear + ')' +(o.malsman ? ' · målsman ' + o.malsman : '') + ' · ' + o.epost + (o.epost_fler ? ', ' + o.epost_fler : '') + (o.mobil ? ' · ' + o.mobil : '') + ' · ' + o.skapad.slice(0, 16),
+        o.personnummer + ' (född ' + o.fodelsear + ')' +(o.malsman ? ' · målsman ' + o.malsman : '') + ' · ' + o.epost + (o.epost_fler ? ', ' + o.epost_fler : '') + (o.mobil ? ' · ' + o.mobil : '') + (o.ingen_bild ? ' · INGA BILDER' : '') + ' · ' + o.skapad.slice(0, 16),
         [knapp(o.klar ? 'Ångra' : 'Klar', function () { return gor('overgang_klar', {id: o.id, klar: !o.klar}); }),
          knapp('Ta bort', function () {
            if (!confirm('Ta bort registreringen för ' + o.namn + ', med personnummer? Det går inte att ångra.')) return;
@@ -226,7 +226,7 @@
     data.anmalningar.forEach(function (a) {
       var vem = a.vem.split(',').map(function (v) { return VEM[v] || v; }).join(' + ') + (a.alder ? ', född ' + a.alder : '');
       an.appendChild(rad(a.namn + ' · ' + (ARENDEN[a.arende] || a.arende),
-        vem + ' · ' + a.epost + (a.mobil ? ' · ' + a.mobil : '') + ' · ' + a.skapad.slice(0, 16),
+        vem + ' · ' + a.epost + (a.mobil ? ' · ' + a.mobil : '') + (a.ingen_bild ? ' · INGA BILDER' : '') + ' · ' + a.skapad.slice(0, 16),
         [knapp(a.klar ? 'Ångra' : 'Klar', function () { return gor('anmalan_klar', {id: a.id, klar: !a.klar}); }),
          knapp('Ta bort', function () {
            if (!confirm('Ta bort anmälan från ' + a.namn + '? Det går inte att ångra.')) return;

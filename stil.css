@@ -90,6 +90,8 @@ legend{padding:0;margin-bottom:8px;font-weight:700}
 .field label{font-weight:700}
 .field input{min-height:54px;padding:10px 14px;font:inherit;font-size:17px;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:0}
 .err{color:#B3261E;font-weight:700}
+.bildinfo{display:flex;flex-direction:column;gap:10px}
+.bildinfo p{margin:0;font-size:15px;color:var(--muted)}
 .done{margin-top:24px;padding:22px;background:var(--card);border:2px solid var(--ink);box-shadow:5px 5px 0 var(--purple);max-width:560px}
 .done b{font-size:26px;font-weight:400}
 .done p{margin-top:8px;color:var(--muted)}

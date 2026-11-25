@@ -70,6 +70,10 @@
       Vill du att vi ändrar eller tar bort något? Svara på bekräftelsemejlet du får.
     </div>
     <label class="godkann"><input type="checkbox" id="godkann"> Jag har läst hur uppgifterna hanteras.</label>
+    <div class="bildinfo">
+      <p>Vi tar ibland bilder på träningar som kan publiceras, till exempel här på sajten. Genom att registrera dig godkänner du det.</p>
+      <label class="godkann"><input type="checkbox" id="ingen-bild"> Jag vill inte att bilder där medlemmen syns publiceras.</label>
+    </div>
 
     <p class="err" id="err" role="alert" hidden></p>
     <button class="btn primary" type="submit" id="skicka">Skicka registrering</button>
@@ -142,6 +146,7 @@
     fetch('../api/index.php?do=overgang', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
       namn: $('namn').value, personnummer: $('pnr').value, malsman: $('malsman').value,
       epost: $('epost').value, epost_fler: fler, mobil: $('mobil').value, godkann: $('godkann').checked,
+      ingen_bild: $('ingen-bild').checked,
       webbplats: $('webbplats').value, tid: Date.now() - visad
     })}).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.fel || ''); });
@@ -158,7 +163,7 @@
   // Nästa familjemedlem: behåll kontaktuppgifterna, töm resten.
   $('en-till').addEventListener('click', function () {
     ['namn', 'pnr', 'malsman'].forEach(function (id) { $(id).value = ''; });
-    $('godkann').checked = false; $('malsman-falt').hidden = true;
+    $('godkann').checked = false; $('ingen-bild').checked = false; $('malsman-falt').hidden = true;
     visad = Date.now(); $('done').hidden = true; $('form').hidden = false; $('namn').focus();
   });
 })();

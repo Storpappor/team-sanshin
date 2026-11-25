@@ -69,6 +69,12 @@ function uppgradera_tabeller(PDO $pdo): void {
     if (!$finns('SELECT epost_fler FROM overgang LIMIT 1')) {
         $pdo->exec('ALTER TABLE overgang ADD COLUMN epost_fler VARCHAR(900)');
     }
+    // 1 = vill inte att bilder där de syns publiceras.
+    foreach (['anmalan', 'overgang'] as $tabell) {
+        if (!$finns("SELECT ingen_bild FROM $tabell LIMIT 1")) {
+            $pdo->exec("ALTER TABLE $tabell ADD COLUMN ingen_bild INT NOT NULL DEFAULT 0");
+        }
+    }
 }
 
 // ---------- personnummer ----------
