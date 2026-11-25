@@ -12,7 +12,7 @@ Du hjälper Aleks att göra klart och publicera karateklubbens nya sajt. Aleks �
 
 ## Vad sajten ska göra
 
-1. Få föräldrar att anmäla sig och sina barn till terminen som startar 18/1. Det är huvudmålet.
+1. Få föräldrar att anmäla sig och sina barn till terminen som startar vecka 3 2027 (första pass måndag 18/1). Det är huvudmålet.
 2. Visa tradition och rötter i Sanshin Kan, startad 1969.
 3. Visa klubbens spel som en kul extragrej, inte som huvudsak.
 
@@ -41,7 +41,7 @@ Målgrupp: föräldrar med barn. De flesta kommer in via QR-koder på affischer,
 - Adress: Björngårdsgatan 15, 118 52 Stockholm, nära Mariatorget.
 - 1969: Tamas Weber, 10 dan, startar Sanshin Kan på Olofsgatan i Stockholm.
 - 2011: Ken Bokelius, 7 dan, startar Sanshin Kan Södermalm på Björngårdsgatan 15.
-- 2027: nytt intag av medlemmar. Terminstart 18/1, begränsat antal platser.
+- 2027: nytt intag av medlemmar. Terminstart vecka 3 2027 (första pass måndag 18/1), begränsat antal platser.
 - Barn tas emot från 7 år.
 - Spelet: https://storpappor.github.io/tamas-mobile-preview/combined/
 - Nuvarande klubbsajt på adressen: https://karateklubben.se/
