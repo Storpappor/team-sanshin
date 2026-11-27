@@ -9,3 +9,4 @@ verktyg/provserver-losen.txt
 data/*
 !data/.htaccess
 verktyg/testserver-losen.txt
+verktyg/loopia-cron-adress.txt
